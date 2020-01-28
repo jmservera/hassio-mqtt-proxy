@@ -26,4 +26,13 @@ def log(text, level=LogLevel.INFO, sd_notify=False, console=True):
        print('>>> STATUS={} - {}.'.format(timestamp_sd, unidecode(text)))
        # sd_notifier.notify('STATUS={} - {}.'.format(timestamp_sd, unidecode(text)))
 
+def logInfo(text, sd_notify=False, console=True):
+    log(text, LogLevel.INFO, sd_notify, console)
+
+def logWarning(text, sd_notify=False, console=True):
+    log(text, LogLevel.WARNING, sd_notify, console)
+
+def logError(text, sd_notify=False, console=True):
+    log(text, LogLevel.ERROR, sd_notify, console)
+
 colorama_init()

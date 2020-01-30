@@ -13,6 +13,7 @@ from unidecode import unidecode
 import uuid
 
 #custom libs
+import config
 from logger import logInfo,logWarning,logError
 from web.app import webApp 
 
@@ -25,13 +26,20 @@ parser = argparse.ArgumentParser(description='A simple mqtt proxy for publishing
 parser.add_argument('-w','--webServer',help="starts a web server", action="store_true")
 parser.add_argument('-p','--port',type=int,help='the server port to listen')
 parser.add_argument('-r','--retainConfig',help="sets the retain flag to the config messages",action="store_true")
+parser.add_argument('-c','--configFile', type=argparse.FileType('r'), help="the config.yaml file" )
 args=parser.parse_args()
 
 if(args.webServer):
-    if(args.port):
-        webApp(args.port)
-    else:
-        webApp()
+    config.webServer=True
+
+if(args.port):
+    config.port=args.port
+
+if(args.retainConfig):
+    config.mqtt.retainConfig=args.retainConfig
+
+if(args.configFile):
+    config.loadConfig(args.configFile)
 
 
 # Eclipse Paho callbacks - http://www.eclipse.org/paho/clients/python/docs/#callbacks

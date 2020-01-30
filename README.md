@@ -7,8 +7,12 @@ We are using virtual environment, to develop do:
 ```bash
  sudo apt-get update && \
  sudo apt-get install -y python3.7 python3-pip libglib2.0-dev bluez
- 
+
  python3 -m venv venv 
  source venv/bin/activate
  pip install -r requirements.txt
 ```
+
+## Device discovery
+
+Discovery feature needs the service to be run under elevated privileges. If you don't have elevation it will not work.

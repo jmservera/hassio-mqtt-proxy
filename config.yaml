@@ -1,8 +1,8 @@
 mqtt:
     server: localhost
-    # user: 
-    # pwd: 
-    retain_config: true
+    user: mosquitto 
+    password: mosquitto
+    retainConfig: true
 
 ble:
     device: hc0

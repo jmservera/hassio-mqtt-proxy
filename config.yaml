@@ -1,9 +1,11 @@
+app:
+    mode: development # production, test
+    debug: true
 mqtt:
     server: localhost
     user: mosquitto 
     password: mosquitto
     retainConfig: true
-
 ble:
     device: hc0
 

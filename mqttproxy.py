@@ -8,13 +8,14 @@ import os
 import paho.mqtt.client as mqtt
 from platform import platform
 import sys
+import threading
 from time import sleep
 from unidecode import unidecode
 import uuid
 
 #custom libs
 from configuration import readFromArgs, config
-from logger import *
+from logger import logInfo, logError, logDebug, logWarning
 from web.app import webApp
 
 hosttype="host"
@@ -68,10 +69,18 @@ def announce(deviceconfig):
     deviceconfig=addDevice(deviceconfig)
     mqtt_client.publish(createTopic("{}/config".format(hosttype)),payload=json.dumps(deviceconfig),retain=config.mqtt.retainConfig)
 
+def refreshLoop():
+    while True:
+        logInfo("Sleeping 30s")
+        sleep(30)
+
+refresh=None
+
 def main():
+    global refresh
     parser = argparse.ArgumentParser(description='A simple mqtt proxy for publishing hassio modules that could not run inside hassio.')
     parser.add_argument('-w','--webServer',help="starts a web server", action="store_true")
-    parser.add_argument('-p','--port',type=int,help='the server port to listen')
+    parser.add_argument('-p','--webPort',type=int,help='the server port to listen')
     parser.add_argument('-r','--retainConfig',help="sets the retain flag to the config messages",action="store_true")
     parser.add_argument('-c','--configfile', type=argparse.FileType('r'), help="the config.yaml file" )
     parser.add_argument('-u','--mqttuser', help="username for mqtt connection")
@@ -107,9 +116,16 @@ def main():
         sleep(0.1)
         mqtt_client.publish(createTopic("{}/state".format(hosttype)),payload='ON')
 
-    while True:
-        logInfo("sleep 30s")
-        sleep(30)
+    if(not refresh):
+        refresh=threading.Thread(target=refreshLoop,daemon=True)
+        refresh.start()
+
+    if(config.web_admin.enabled):
+        from web import app
+        app.webApp(config.web_admin.port)
+    else:
+        while True:
+            sleep(30)
 
 if __name__=="__main__":
     main()

@@ -1,7 +1,10 @@
 from munch import Munch
 from logger import logDebug
 
-config = Munch.fromYAML("""mqtt:
+config = Munch.fromYAML("""app:
+    mode: development # production, test
+    debug: true
+mqtt:
     server: localhost
     user: 
     password: 
@@ -11,7 +14,7 @@ ble:
     device: hc0
 
 web_admin:
-    enabled: true
+    enabled: false
     port: 8080
 
 devices: []
@@ -38,9 +41,9 @@ def saveConfig(configpath="config.yaml"):
 def readFromArgs(args):
     global config
     if(args.webServer):
-        config.webServer=True
-    if(args.port):
-        config.port=args.port
+        config.web_admin.enabled=True
+    if(args.webPort):
+        config.web_admin.port=args.port
     if(args.retainConfig):
         config.mqtt.retainConfig=args.retainConfig
     if(args.mqttuser):

@@ -1,12 +1,12 @@
+from flask import Flask, render_template
+
+app = Flask(__name__)
+
 @app.route('/')
 def index():
-    return 'Hello world'
+    return render_template('index.html',name=__name__)
 
 def webApp(port=8080, production=False):
-    from flask import Flask
-
-    app = Flask(__name__)
-
     if production:
         import waitress
         waitress.serve(app, host='0.0.0.0', port=port)

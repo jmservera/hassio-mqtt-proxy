@@ -14,9 +14,10 @@ from unidecode import unidecode
 import uuid
 
 #custom libs
-from configuration import readFromArgs, config
-from logger import logInfo, logError, logDebug, logWarning
-from web.app import webApp
+from mqttproxy.configuration import readFromArgs,getConfig
+from mqttproxy.logger import logInfo, logError, logDebug, logWarning
+from mqttproxy.web.app import webApp
+from mqttproxy.const import REQUIRED_PYTHON_VER, RESTART_EXIT_CODE, __version__
 
 hosttype="host"
 hassio_topic="homeassistant"
@@ -24,6 +25,7 @@ hostname="hassmqttproxy-{:x}".format( uuid.getnode())
 manufacturer="jmservera"
 
 mqtt_client = mqtt.Client()
+config=getConfig()
 
  # Eclipse Paho callbacks - http://www.eclipse.org/paho/clients/python/docs/#callbacks
 def on_connect(client, userdata, flags, rc):
@@ -76,15 +78,23 @@ def refreshLoop():
 
 refresh=None
 
-def main():
-    global refresh
+def createParser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description='A simple mqtt proxy for publishing hassio modules that could not run inside hassio.')
-    parser.add_argument('-w','--webServer',help="starts a web server", action="store_true")
+    parser.add_argument('--noWebServer',help="does not start the web server", action="store_true")
+    parser.add_argument('--production',help="sets the server in production mode", action="store_true")
     parser.add_argument('-p','--webPort',type=int,help='the server port to listen')
-    parser.add_argument('-r','--retainConfig',help="sets the retain flag to the config messages",action="store_true")
+    parser.add_argument('-r','--retainConfig', type=bool,help="sets the retain flag to the config messages")
     parser.add_argument('-c','--configfile', type=argparse.FileType('r'), help="the config.yaml file" )
+    parser.add_argument('-m','--mqttserver', help="mqtt connection server",default="localhost")
     parser.add_argument('-u','--mqttuser', help="username for mqtt connection")
     parser.add_argument('-P','--mqttpassword',help="password for the mqtt connection")
+    parser.add_argument("--version", action="version", version=__version__)
+    return parser
+    
+def main() -> int:
+    global refresh
+    parser=createParser()
+    
     args=parser.parse_args()
 
     readFromArgs(args)
@@ -103,7 +113,7 @@ def main():
         mqtt_client.connect('localhost',port=1883,keepalive=60)
     except Exception as ex:
         logError('MQTT connection error:{}'.format(ex))
-        sys.exit(1)
+        return 1
     else:
         mqtt_client.subscribe(createTopic("cmnd"))
         deviceconfig={
@@ -121,11 +131,13 @@ def main():
         refresh.start()
 
     if(config.web_admin.enabled):
-        from web import app
-        app.webApp(config.web_admin.port)
+        from mqttproxy.web import app
+        app.webApp(config.web_admin.port,config.app.mode=="production")
     else:
         while True:
             sleep(30)
+    
+    return 0
 
-if __name__=="__main__":
-    main()
+if __name__ == "__main__":
+    sys.exit(main())

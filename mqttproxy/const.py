@@ -1,7 +1,7 @@
 """Constants used by MQTT proxy for Home Assistant components."""
 MAJOR_VERSION = 0
-MINOR_VERSION = 3
-PATCH_VERSION = "0.dev0"
+MINOR_VERSION = 1
+PATCH_VERSION = "1.alpha"
 __short_version__ = "{}.{}".format(MAJOR_VERSION, MINOR_VERSION)
 __version__ = "{}.{}".format(__short_version__, PATCH_VERSION)
 REQUIRED_PYTHON_VER = (3, 7, 0)

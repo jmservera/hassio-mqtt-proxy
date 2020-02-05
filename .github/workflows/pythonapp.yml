@@ -31,6 +31,7 @@ jobs:
       run: |
         pip install coverage
         python setup.py install
+        coverage report
         coverage xml -o coverage-results/coverage-0.xml --include="mqttproxy/*.py"
     - name: SonarCloud Scan
       uses: SonarSource/sonarcloud-github-action@v1.1

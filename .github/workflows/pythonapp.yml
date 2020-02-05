@@ -26,11 +26,8 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with unittest
       run: |
-        python -m unittest
-    - name: Test Coverage report
-      run: |
         pip install coverage
-        python setup.py install
+        python -m unittest
         coverage report
         coverage xml -o coverage-results/coverage-0.xml --include="mqttproxy/*.py"
     - name: SonarCloud Scan

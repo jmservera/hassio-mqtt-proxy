@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-__version__ ='0.0.3-alpha'
-
 import argparse
 import json
 import os
@@ -17,7 +15,7 @@ import uuid
 from mqttproxy.configuration import readFromArgs,getConfig
 from mqttproxy.logger import logInfo, logError, logDebug, logWarning
 from mqttproxy.web.app import webApp
-from mqttproxy.const import REQUIRED_PYTHON_VER, RESTART_EXIT_CODE, __version__
+from mqttproxy.const import REQUIRED_PYTHON_VER, RESTART_EXIT_CODE, __version__,__language__
 
 hosttype="host"
 hassio_topic="homeassistant"
@@ -132,7 +130,8 @@ def main() -> int:
 
     if(config.web_admin.enabled):
         from mqttproxy.web import app
-        app.webApp(config.web_admin.port,config.app.mode=="production")
+        app.webApp(config.web_admin.port,config.app.mode=="production",
+                    dict(__version__=__version__,__language__=__language__))
     else:
         while True:
             sleep(30)

@@ -1,12 +1,22 @@
 from flask import Flask, render_template
 
 app = Flask(__name__)
+_contextvars=dict()
 
 @app.route('/')
 def index():
     return render_template('index.html',name=__name__)
 
-def webApp(port=8080, production=False):
+@app.context_processor
+def inject_global_constants():
+    return _contextvars
+
+def webApp(port=8080, production=False, contextvars=None):
+    global _contextvars
+    if(contextvars):
+        for key in contextvars.keys():
+            _contextvars[key]=contextvars[key]
+
     if production:
         import waitress
         waitress.serve(app, host='0.0.0.0', port=port)

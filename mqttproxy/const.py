@@ -4,6 +4,7 @@ MINOR_VERSION = 1
 PATCH_VERSION = "1.alpha"
 __short_version__ = "{}.{}".format(MAJOR_VERSION, MINOR_VERSION)
 __version__ = "{}.{}".format(__short_version__, PATCH_VERSION)
+__language__ = "en"
 REQUIRED_PYTHON_VER = (3, 7, 0)
 # Truthy date string triggers showing related deprecation warning messages.
 REQUIRED_NEXT_PYTHON_VER = (3, 8, 0)

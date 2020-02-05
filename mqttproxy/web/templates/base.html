@@ -1,14 +1,15 @@
-<!DOCTYPE html>
-<html lang="{{__language__}}">
-    <head>
-        <meta name="version" content="{{__version__}}">
-        {% block head %}
-        <title>{% block title %} MQTT Proxy {% endblock %}</title>
-        {% endblock %}
-    </head>
-    <body>
-        {% block body %}
-        Write some body here!
-        {% endblock %}
-    </body>
-</html>
+{% extends "bootstrap/base.html" %}
+{% block html_attribs %} lang="{{__language__}}"{% endblock %}
+{% block head %}
+<meta name="version" content="{{__version__}}">
+{{ super() }}
+{% endblock %}
+{% block title %} MQTT Proxy {% endblock %}
+
+{% block navbar %}
+{{nav.mynavbar.render()}}
+{% endblock %}
+
+{% block content %}
+Write some body here!
+{% endblock %}

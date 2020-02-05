@@ -1,6 +1,13 @@
 from flask import Flask, render_template
+from flask_nav import Nav
+from flask_nav.elements import Navbar, View 
+from flask_bootstrap import Bootstrap
 
 app = Flask(__name__)
+Bootstrap(app)
+nav = Nav()
+nav.init_app(app)
+
 _contextvars=dict()
 
 @app.route('/')
@@ -10,6 +17,14 @@ def index():
 @app.context_processor
 def inject_global_constants():
     return _contextvars
+
+
+@nav.navigation()
+def mynavbar():
+    return Navbar(
+        'MQTT Proxy',
+        View('Home', 'index'),
+    )
 
 def webApp(port=8080, production=False, contextvars=None):
     global _contextvars

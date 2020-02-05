@@ -1,9 +1,0 @@
-miflora==0.6
-wheel==0.33.6
-paho-mqtt==1.4.0
-flask==1.1.1
-colorama==0.4.3
-Unidecode==1.1.1
-bluepy==1.3.0
-PyYAML==5.3
-munch==2.5.0

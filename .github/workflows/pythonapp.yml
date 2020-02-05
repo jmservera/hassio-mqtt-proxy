@@ -29,6 +29,10 @@ jobs:
         pip install coverage
         coverage run -m unittest
         coverage xml -o coverage-results/coverage-0.xml
+    - name: test folders
+      run: |
+        ls -la /home/runner/work/hassio-mqtt-proxy/hassio-mqtt-proxy
+        ls -la /home/runner/work/hassio-mqtt-proxy/hassio-mqtt-proxy/code-coverage
     - name: SonarCloud Scan
       uses: SonarSource/sonarcloud-github-action@v1.1
       env:

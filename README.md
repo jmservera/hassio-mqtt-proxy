@@ -1,6 +1,7 @@
 # hassio-mqtt-proxy
 
 ![Python application](https://github.com/jmservera/hassio-mqtt-proxy/workflows/Python%20application/badge.svg?branch=master)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=jmservera_hassio-mqtt-proxy&metric=alert_status)](https://sonarcloud.io/dashboard?id=jmservera_hassio-mqtt-proxy)
 
 > Warning! this project is in the first phase of development and is not functional at all 
 

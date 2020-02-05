@@ -1,6 +1,6 @@
 import unittest
 from mqttproxy.configuration import *
-from common import getFixturePath
+from .common import getFixturePath
 
 class TestConfiguration(unittest.TestCase):
 

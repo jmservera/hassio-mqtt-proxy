@@ -1,6 +1,8 @@
 # hassio-mqtt-proxy
 
-A simple mqtt proxy to send data to Home Assistant. It creates a device for marking the proxy as enabled when running.
+> Warning! this project is in the first phase of development and is not functional at all 
+
+A simple mqtt proxy to send data to Home Assistant. It creates a device for marking the proxy as enabled when running. It has been greatly inspired by the [miflora mqtt daemon](https://github.com/ThomDietrich/miflora-mqtt-daemon) but also contains auto discovery and device integration to know when the Raspi was down or unstable. It's specifically designed for [Home Assistant](https://github.com/home-assistant).
 
 We are using virtual environment, to develop do:
 

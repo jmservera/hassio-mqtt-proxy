@@ -1,5 +1,7 @@
 # hassio-mqtt-proxy
 
+> Warning! this project is in the first phase of development and is not functional at all 
+
 A simple mqtt proxy to send data to Home Assistant. It creates a device for marking the proxy as enabled when running.
 
 We are using virtual environment, to develop do:

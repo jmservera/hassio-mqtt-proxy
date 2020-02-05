@@ -58,6 +58,6 @@ setup(
     zip_safe=False,
     install_requires=REQUIRES,
     python_requires=">={}".format(MIN_PY_VERSION),
-    test_suite="test",
+    test_suite="tests",
     entry_points={"console_scripts": ["mqttproxy = mqttproxy.__main__:main"]},
 )

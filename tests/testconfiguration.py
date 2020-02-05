@@ -1,5 +1,7 @@
+import tempfile
 import unittest
 from mqttproxy.configuration import *
+from os import path
 from .common import getFixturePath
 
 class TestConfiguration(unittest.TestCase):
@@ -51,7 +53,7 @@ class TestConfiguration(unittest.TestCase):
         self.assertEqual(config.app.mode,"production")
         self.assertFalse(config.app.debug)
 
-    def test_read_config(self):
+    def test_loadConfig(self):
         path= getFixturePath("config.yaml")
         config=self.getCurrentConfig()
 
@@ -61,18 +63,17 @@ class TestConfiguration(unittest.TestCase):
         self.assertEqual(config.mqtt.user,"testuser")
         self.assertEqual(config.mqtt.password,"testpassword")
 
+    def test_saveConfig(self):
+        tempdir=tempfile.gettempdir()
+        filename= path.join(tempdir, "configtest.xml")
+        config=self.getCurrentConfig()
+        config.mqtt.retainConfig=False
+        config.web_admin.port=443
+        config.app.mode="production"
 
+        saveConfig(filename)
 
-    # def test_isupper(self):
-    #     self.assertTrue('FOO'.isupper())
-    #     self.assertFalse('Foo'.isupper())
+        resetConfig()
+        config2=loadConfig(filename)
+        self.assertDictEqual(config,config2)
 
-    # def test_split(self):
-    #     s = 'hello world'
-    #     self.assertEqual(s.split(), ['hello', 'world'])
-    #     # check that s.split fails when the separator is not a string
-    #     with self.assertRaises(TypeError):
-    #         s.split(2)
-
-if __name__ == '__main__':
-    unittest.main()

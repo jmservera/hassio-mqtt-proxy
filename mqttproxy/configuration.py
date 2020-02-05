@@ -29,8 +29,8 @@ resetConfig()
 def getConfig():
     return _config
 
-def readConfig(configfile):
-    newconfig=Munch.fromYAML(configfile)        
+def _readConfig(configfile):
+    newconfig=Munch.fromYAML(configfile)
     _config.clear()
     for key in newconfig:
         _config[key]=newconfig[key]
@@ -39,13 +39,13 @@ def readConfig(configfile):
 def loadConfig(configpath="config.yaml"):
     global _config
     with open(configpath,"r") as configfile:
-        readConfig(configfile)
+        _readConfig(configfile)
     return _config
 
 def saveConfig(configpath="config.yaml"):
     global _config
     with open(configpath,"w") as configfile:
-        _config.toYAML(configfile)
+        configfile.write(_config.toYAML())
 
 def readFromArgs(args):
     global _config
@@ -66,4 +66,4 @@ def readFromArgs(args):
         _config.app.debug=False
     if(args.configfile):
         logDebug("Loading {0}".format(args.configfile))
-        readConfig(args.configfile)
+        _readConfig(args.configfile)

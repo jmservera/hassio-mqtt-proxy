@@ -4,8 +4,6 @@ import io
 import unittest
 import unittest.mock
 
-#from .common import getFixturePath
-
 class TestConfiguration(unittest.TestCase):
 
     @unittest.mock.patch('sys.stdout', new_callable=io.StringIO)
@@ -14,15 +12,15 @@ class TestConfiguration(unittest.TestCase):
         return mock_stdout.getvalue()
 
     def test_log_debug(self):
-        result=self.assert_stdout(logDebug,{"text":"hello"})
+        result=self.assert_stdout(log_debug,{"text":"hello"})
         self.assertTrue(result.find("hello")>0)
 
     def test_log_info(self):
-        result=self.assert_stdout(logInfo,{"text":"hello"})
+        result=self.assert_stdout(log_info,{"text":"hello"})
         self.assertTrue(result.find("hello")>0)
 
     def test_log_warning(self):
-        result=self.assert_stdout(logWarning,{"text":"hello"})
+        result=self.assert_stdout(log_warning,{"text":"hello"})
         self.assertTrue(result.find("hello")>0)
     
     def test_log(self):

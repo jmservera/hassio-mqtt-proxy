@@ -7,12 +7,12 @@ from .common import getFixturePath
 class TestConfiguration(unittest.TestCase):
 
     def getCurrentConfig(self):
-        config=getConfig()
+        config=get_config()
         self.assertEqual(config.app.mode, 'development')
         return config
 
     def tearDown(self):
-        resetConfig()
+        reset_config()
 
     def test_main_config(self):
         config=self.getCurrentConfig()
@@ -20,34 +20,34 @@ class TestConfiguration(unittest.TestCase):
         self.assertTrue(config.mqtt.retainConfig)
     
     def test_read_from_args(self):
-        from mqttproxy.__main__ import createParser
-        parser = createParser()
+        from mqttproxy.__main__ import create_parser
+        parser = create_parser()
         
         config=self.getCurrentConfig()
         
         args=parser.parse_args(["--noWebServer"])
-        readFromArgs(args)
+        read_from_args(args)
         self.assertFalse(config.web_admin.enabled)
 
         args=parser.parse_args(["-p 42"])
 
-        resetConfig()
+        reset_config()
         config=self.getCurrentConfig()
 
-        readFromArgs(args)
+        read_from_args(args)
         self.assertTrue(config.web_admin.enabled)
         self.assertEqual(config.web_admin.port,42)
 
         args=parser.parse_args(["-r true"])
-        readFromArgs(args)
+        read_from_args(args)
         self.assertTrue(config.mqtt.retainConfig)
 
         args=parser.parse_args(["-r false"])
-        readFromArgs(args)
+        read_from_args(args)
         self.assertTrue(config.mqtt.retainConfig)
 
         args=parser.parse_args(["-r true","-p 443","--production"])
-        readFromArgs(args)
+        read_from_args(args)
         self.assertTrue(config.mqtt.retainConfig)
         self.assertEqual(config.web_admin.port,443)
         self.assertEqual(config.app.mode,"production")
@@ -57,7 +57,7 @@ class TestConfiguration(unittest.TestCase):
         path= getFixturePath("config.yaml")
         config=self.getCurrentConfig()
 
-        loadConfig(path)
+        load_config(path)
         
         
         self.assertEqual(config.mqtt.user,"testuser")
@@ -71,9 +71,9 @@ class TestConfiguration(unittest.TestCase):
         config.web_admin.port=443
         config.app.mode="production"
 
-        saveConfig(filename)
+        save_config(filename)
 
-        resetConfig()
-        config2=loadConfig(filename)
+        reset_config()
+        config2=load_config(filename)
         self.assertDictEqual(config,config2)
 

@@ -1,7 +1,7 @@
 from munch import Munch
-from mqttproxy.logger import logDebug
+from mqttproxy.logger import log_debug
 
-def resetConfig():
+def reset_config():
     global _config
     _config=Munch.fromYAML("""app:
     mode: development # production, test
@@ -23,10 +23,10 @@ devices: []
     return _config
 
 _config = None
-resetConfig()
+reset_config()
 
 
-def getConfig():
+def get_config():
     return _config
 
 def _readConfig(configfile):
@@ -36,18 +36,18 @@ def _readConfig(configfile):
         _config[key]=newconfig[key]
 
 
-def loadConfig(configpath="config.yaml"):
+def load_config(configpath="config.yaml"):
     global _config
     with open(configpath,"r") as configfile:
         _readConfig(configfile)
     return _config
 
-def saveConfig(configpath="config.yaml"):
+def save_config(configpath="config.yaml"):
     global _config
     with open(configpath,"w") as configfile:
         configfile.write(_config.toYAML())
 
-def readFromArgs(args):
+def read_from_args(args):
     global _config
     if(args.noWebServer):
         _config.web_admin.enabled=False
@@ -65,5 +65,5 @@ def readFromArgs(args):
         _config.app.mode="production"
         _config.app.debug=False
     if(args.configfile):
-        logDebug("Loading {0}".format(args.configfile))
+        log_debug("Loading {0}".format(args.configfile))
         _readConfig(args.configfile)

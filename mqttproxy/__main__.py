@@ -12,8 +12,8 @@ from unidecode import unidecode
 import uuid
 
 #custom libs
-from mqttproxy.configuration import readFromArgs,getConfig
-from mqttproxy.logger import logInfo, logError, logDebug, logWarning
+from mqttproxy.configuration import read_from_args,get_config
+from mqttproxy.logger import log_info, log_error, log_debug, log_warning
 from mqttproxy.web.app import webApp
 from mqttproxy.const import REQUIRED_PYTHON_VER, RESTART_EXIT_CODE, __version__,__language__
 
@@ -23,24 +23,24 @@ hostname="hassmqttproxy-{:x}".format( uuid.getnode())
 manufacturer="jmservera"
 
 mqtt_client = mqtt.Client()
-config=getConfig()
+config=get_config()
 
  # Eclipse Paho callbacks - http://www.eclipse.org/paho/clients/python/docs/#callbacks
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
-        logInfo('MQTT connection established', console=True, sd_notify=True)
+        log_info('MQTT connection established', console=True, sd_notify=True)
         print()
     else:
-        logError('Connection error with result code {} - {}'.format(str(rc), mqtt.connack_string(rc)))
+        log_error('Connection error with result code {} - {}'.format(str(rc), mqtt.connack_string(rc)))
         #kill main thread
         os._exit(1)
 
 def on_publish(client, userdata, mid):
-    logInfo("Message id={}".format(mid))
+    log_info("Message id={}".format(mid))
 
 def on_message(client, userdata, message):
     try:
-        logInfo('Received message:{}'.format(message.payload))
+        log_info('Received message:{}'.format(message.payload))
         # value= json.loads(message.payload)
         # returnMessage={"received_message": value}
         # returnPayload=json.dumps(returnMessage)
@@ -51,12 +51,12 @@ def on_message(client, userdata, message):
         # else:
         #     log("Error {} sending message".format(rc), level=LogLevel.ERROR)
     except Exception as ex:
-        logError(ex)
+        log_error(ex)
 
-def createTopic(suffix,base_topic="binary_sensor"):
+def create_topic(suffix,base_topic="binary_sensor"):
     return "{}/{}/{}/{}".format(hassio_topic,base_topic,hostname,suffix)
 
-def addDevice(deviceconfig):    
+def add_device(deviceconfig):    
     deviceconfig["dev"]={
             "identifiers":["raspi",hostname],
             "name":hostname,
@@ -66,17 +66,17 @@ def addDevice(deviceconfig):
     return deviceconfig
 
 def announce(deviceconfig):
-    deviceconfig=addDevice(deviceconfig)
-    mqtt_client.publish(createTopic("{}/config".format(hosttype)),payload=json.dumps(deviceconfig),retain=config.mqtt.retainConfig)
+    deviceconfig=add_device(deviceconfig)
+    mqtt_client.publish(create_topic("{}/config".format(hosttype)),payload=json.dumps(deviceconfig),retain=config.mqtt.retainConfig)
 
-def refreshLoop():
+def refresh_loop():
     while True:
-        logInfo("Sleeping 30s")
+        log_info("Sleeping 30s")
         sleep(30)
 
 refresh=None
 
-def createParser() -> argparse.ArgumentParser:
+def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description='A simple mqtt proxy for publishing hassio modules that could not run inside hassio.')
     parser.add_argument('--noWebServer',help="does not start the web server", action="store_true")
     parser.add_argument('--production',help="sets the server in production mode", action="store_true")
@@ -91,17 +91,17 @@ def createParser() -> argparse.ArgumentParser:
     
 def main() -> int:
     global refresh
-    parser=createParser()
+    parser=create_parser()
     
     args=parser.parse_args()
 
-    readFromArgs(args)
+    read_from_args(args)
 
     mqtt_client.on_connect = on_connect
     mqtt_client.on_publish = on_publish
     mqtt_client.on_message = on_message
     try:
-        logDebug(config)
+        log_debug(config)
         if(config.mqtt.user):
             if(config.mqtt.password):
                 mqtt_client.username_pw_set(config.mqtt.user,config.mqtt.password)
@@ -110,22 +110,22 @@ def main() -> int:
 
         mqtt_client.connect('localhost',port=1883,keepalive=60)
     except Exception as ex:
-        logError('MQTT connection error:{}'.format(ex))
+        log_error('MQTT connection error:{}'.format(ex))
         return 1
     else:
-        mqtt_client.subscribe(createTopic("cmnd"))
+        mqtt_client.subscribe(create_topic("cmnd"))
         deviceconfig={
             "name":"{}-state".format(hostname),
             "unique_id":hostname,
-            "stat_t":createTopic("{}/state".format(hosttype)),
+            "stat_t":create_topic("{}/state".format(hosttype)),
         }
         announce(deviceconfig)
         mqtt_client.loop_start()
         sleep(0.1)
-        mqtt_client.publish(createTopic("{}/state".format(hosttype)),payload='ON')
+        mqtt_client.publish(create_topic("{}/state".format(hosttype)),payload='ON')
 
     if(not refresh):
-        refresh=threading.Thread(target=refreshLoop,daemon=True)
+        refresh=threading.Thread(target=refresh_loop,daemon=True)
         refresh.start()
 
     if(config.web_admin.enabled):

@@ -4,7 +4,7 @@ from mqttproxy.configuration import *
 from mqttproxy.__main__ import create_parser
 
 from os import path
-from .common import getFixturePath
+from .common import get_fixture_path
 
 class TestConfiguration(unittest.TestCase):
 
@@ -73,7 +73,7 @@ class TestConfiguration(unittest.TestCase):
         self.assertEqual(config.mqtt.server,"localhost")
 
     def test_loadConfig(self):
-        path= getFixturePath("config.yaml")
+        path= get_fixture_path("config.yaml")
         config=self.current_config
 
         load_config(path)

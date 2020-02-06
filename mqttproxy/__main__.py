@@ -41,7 +41,6 @@ def on_publish(client, userdata, mid):
 def on_message(client, userdata, message):
     try:
         log_info('Received message:{}'.format(message.payload))
-        # value= json.loads(message.payload)
     except Exception as ex:
         log_error(ex)
 

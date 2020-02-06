@@ -26,7 +26,7 @@ def mynavbar():
         View('Home', 'index'),
     )
 
-def webApp(port=8080, production=False, contextvars=None):
+def web_app(port=8080, production=False, contextvars=None):
     global _contextvars
     if(contextvars):
         for key in contextvars.keys():
@@ -39,4 +39,4 @@ def webApp(port=8080, production=False, contextvars=None):
         app.run(debug=True, host='0.0.0.0', port=port)
 
 if __name__ == '__main__':
-    webApp()
+    web_app()

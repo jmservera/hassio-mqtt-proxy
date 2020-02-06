@@ -14,7 +14,7 @@ import uuid
 #custom libs
 from mqttproxy.configuration import read_from_args,get_config
 from mqttproxy.logger import log_info, log_error, log_debug, log_warning
-from mqttproxy.web.app import webApp
+from mqttproxy.web.app import web_app
 from mqttproxy.const import REQUIRED_PYTHON_VER, RESTART_EXIT_CODE, __version__,__language__
 
 hosttype="host"
@@ -42,14 +42,6 @@ def on_message(client, userdata, message):
     try:
         log_info('Received message:{}'.format(message.payload))
         # value= json.loads(message.payload)
-        # returnMessage={"received_message": value}
-        # returnPayload=json.dumps(returnMessage)
-        # log(returnPayload)
-        # (rc,mid)=mqtt_client.publish('{}/RESULT'.format(base_topic), payload=returnPayload)
-        # if rc==mqtt.MQTT_ERR_SUCCESS:
-        #     log("Sent message with mid:{}".format(mid))
-        # else:
-        #     log("Error {} sending message".format(rc), level=LogLevel.ERROR)
     except Exception as ex:
         log_error(ex)
 
@@ -67,7 +59,12 @@ def add_device(deviceconfig):
 
 def announce(deviceconfig):
     deviceconfig=add_device(deviceconfig)
-    mqtt_client.publish(create_topic("{}/config".format(hosttype)),payload=json.dumps(deviceconfig),retain=config.mqtt.retainConfig)
+    (rc,mid)=mqtt_client.publish(create_topic("{}/config".format(hosttype)),payload=json.dumps(deviceconfig),retain=config.mqtt.retainConfig)
+
+    if rc==mqtt.MQTT_ERR_SUCCESS:
+        log_info("Sent message with mid:{}".format(mid))
+    else:
+        log_error("Error {} sending message".format(rc))
 
 def refresh_loop():
     while True:
@@ -130,7 +127,7 @@ def main() -> int:
 
     if(config.web_admin.enabled):
         from mqttproxy.web import app
-        app.webApp(config.web_admin.port,config.app.mode=="production",
+        app.web_app(config.web_admin.port,config.app.mode=="production",
                     dict(__version__=__version__,__language__=__language__))
     else:
         while True:

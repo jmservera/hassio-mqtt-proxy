@@ -10,3 +10,4 @@ bluepy==1.3.0
 PyYAML==5.3
 munch==2.5.0
 waitress==1.4.3
+sdnotify==0.3.2

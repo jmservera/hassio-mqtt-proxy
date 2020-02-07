@@ -5,6 +5,9 @@ from enum import Enum
 import sys
 from time import time, sleep, localtime, strftime
 from unidecode import unidecode
+import sdnotify
+
+sdnotifier=sdnotify.SystemdNotifier()
 
 class LogLevel(Enum):
     DEBUG=-1
@@ -24,10 +27,10 @@ def log(text, level=LogLevel.INFO, sd_notify=False, console=True):
             print(Fore.CYAN + '[{}] '.format(timestamp) + Style.RESET_ALL + '{}'.format(text) + Style.RESET_ALL)
         else:
             print(Fore.GREEN + '[{}] '.format(timestamp) + Style.RESET_ALL + '{}'.format(text) + Style.RESET_ALL)
-    timestamp_sd = strftime('%b %d %H:%M:%S', localtime())
+    
     if sd_notify:
-       print('>>> STATUS={} - {}.'.format(timestamp_sd, unidecode(text)))
-       # sd_notifier.notify('STATUS={} - {}.'.format(timestamp_sd, unidecode(text)))
+        timestamp_sd = strftime('%b %d %H:%M:%S', localtime())
+        sdnotifier.notify('STATUS={} - {}.'.format(timestamp_sd, unidecode(text)))
 
 def log_debug(text, sd_notify=False, console=True):
     log(text, LogLevel.DEBUG, sd_notify, console)

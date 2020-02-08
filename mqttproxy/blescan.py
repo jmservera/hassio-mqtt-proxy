@@ -12,10 +12,11 @@ class ScanDelegate(DefaultDelegate):
         elif is_new_data:
             print("Received new data from {}".format(dev.addr))
 
-scanner = Scanner().withDelegate(ScanDelegate())
-devices = scanner.scan(10.0)
+def scan()->[]:
+    scanner = Scanner().withDelegate(ScanDelegate())
+    devices = scanner.scan(10.0)
 
-for dev in devices:
-    print("Device {} ({}), RSSI={} dB".format(dev.addr, dev.addrType, dev.rssi))
-    for (adtype, desc, value) in dev.getScanData():
-        print("  {} = {}".format(desc, value))
+    for dev in devices:
+        print("Device {} ({}), RSSI={} dB".format(dev.addr, dev.addrType, dev.rssi))
+        for (adtype, desc, value) in dev.getScanData():
+            print("  {} = {}".format(desc, value))

@@ -3,6 +3,9 @@ from flask_nav import Nav
 from flask_nav.elements import Navbar, View 
 from flask_bootstrap import Bootstrap
 
+from .. configuration import get_config
+from .. blescan import scan
+
 app = Flask(__name__)
 Bootstrap(app)
 nav = Nav()
@@ -12,7 +15,13 @@ _contextvars=dict()
 
 @app.route('/')
 def index():
-    return render_template('index.html',name=__name__)
+    config=get_config()
+    return render_template('index.html',name=__name__, devices=config.devices)
+
+@app.route('/',methods=['POST'])
+def index_post():
+    config=get_config()
+    return render_template('index.html',name=__name__, devices=config.devices)
 
 @app.context_processor
 def inject_global_constants():

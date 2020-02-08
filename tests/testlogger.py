@@ -3,20 +3,17 @@ from mqttproxy.logger import *
 import io
 import unittest
 import unittest.mock
+from . common import run_func
 
-class TestConfiguration(unittest.TestCase):
-
-    def run_func(self, func, params, mock_out)->str:
-        func(**params)
-        return mock_out.getvalue()
+class TestLogger(unittest.TestCase):
 
     @unittest.mock.patch('sys.stdout', new_callable=io.StringIO)
     def capture_stdout(self, func, params, mock_stdout)->str:
-        return self.run_func(func,params,mock_stdout)
+        return run_func(func,params,mock_stdout)
 
     @unittest.mock.patch('sys.stderr', new_callable=io.StringIO)
     def capture_stderr(self, func, params, mock_stderr)->str:
-        return self.run_func(func,params,mock_stderr)
+        return run_func(func,params,mock_stderr)
 
     def test_log_debug(self):
         result=self.capture_stdout(log_debug,{"text":"hello"})

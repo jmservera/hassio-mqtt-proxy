@@ -55,6 +55,16 @@ class TestConfiguration(unittest.TestCase):
         self.assertEqual(config.web_admin.port,443)
         self.assertEqual(config.app.mode,"production")
         self.assertFalse(config.app.debug)
+
+        args=parser.parse_args(["-c",get_fixture_path('config.yaml')])
+        read_from_args(args)
+        self.assertEqual(config.mqtt.server,"localhost")
+        self.assertEqual(config.mqtt.user,"testuser")
+        self.assertEqual(config.mqtt.password,"testpassword")
+        self.assertTrue(config.mqtt.retainConfig)
+
+        if(args.configfile):
+            args.configfile.close()
     
     def test_read_mqtt_from_args(self):
         parser = create_parser()

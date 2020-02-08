@@ -16,10 +16,11 @@ from mqttproxy.configuration import read_from_args,get_config
 from mqttproxy.logger import log_info, log_error, log_debug, log_warning
 from mqttproxy.web.app import web_app
 from mqttproxy.const import REQUIRED_PYTHON_VER, RESTART_EXIT_CODE, __version__,__language__
+import mqttproxy
 
 hosttype="host"
 hassio_topic="homeassistant"
-hostname="hassmqttproxy-{:x}".format( uuid.getnode())
+hostname="{}-{:x}".format(mqttproxy.__package__,uuid.getnode())
 manufacturer="jmservera"
 
 mqtt_client = mqtt.Client()
@@ -47,7 +48,7 @@ def on_message(client, userdata, message):
 def create_topic(suffix,base_topic="binary_sensor"):
     return "{}/{}/{}/{}".format(hassio_topic,base_topic,hostname,suffix)
 
-def add_device(deviceconfig):    
+def add_device(deviceconfig:{})->{}:    
     deviceconfig["dev"]={
             "identifiers":["raspi",hostname],
             "name":hostname,

@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 
 from bluepy.btle import Scanner, DefaultDelegate
+from threading import Thread, Semaphore
+import asyncio
+import errno
+
+from mqttproxy.logger import log_error
+
+
 
 class ScanDelegate(DefaultDelegate):
     def __init__(self):
@@ -12,11 +19,26 @@ class ScanDelegate(DefaultDelegate):
         elif is_new_data:
             print("Received new data from {}".format(dev.addr))
 
-def scan()->[]:
-    scanner = Scanner().withDelegate(ScanDelegate())
-    devices = scanner.scan(10.0)
+_semaphore=Semaphore()
 
-    for dev in devices:
-        print("Device {} ({}), RSSI={} dB".format(dev.addr, dev.addrType, dev.rssi))
-        for (adtype, desc, value) in dev.getScanData():
-            print("  {} = {}".format(desc, value))
+def scan(timeout=10.0)->[]:
+    if(_semaphore.acquire(True,0.5)):
+        try:
+            scanner = Scanner().withDelegate(ScanDelegate())
+            devices = scanner.scan(timeout)
+
+            for dev in devices:
+                print("Device {} ({}), RSSI={} dB".format(dev.addr, dev.addrType, dev.rssi))
+                for (adtype, desc, value) in dev.getScanData():
+                    print("  {} = {}".format(desc, value))
+            return devices
+        except Exception as ex:
+            log_error('Error {}'.format(ex))
+        finally:
+            _semaphore.release()
+    else:
+        raise BlockingIOError(errno.EINPROGRESS)    
+
+async def scan_async(timeout=10.0)->[]:
+    loop=asyncio.get_running_loop()
+    return await loop.run_in_executor(None,scan,timeout)

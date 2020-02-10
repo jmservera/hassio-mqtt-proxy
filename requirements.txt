@@ -10,3 +10,4 @@ waitress==1.4.3
 sdnotify==0.3.2
 sanic==19.12.2
 Jinja2==2.10.3
+sanic-jinja2==0.7.5

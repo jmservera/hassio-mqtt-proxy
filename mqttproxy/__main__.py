@@ -11,10 +11,11 @@ from time import sleep
 from unidecode import unidecode
 import uuid
 import coloredlogs, logging
+import sdnotify
 
 #custom libs
 from mqttproxy.configuration import read_from_args,get_config
-from mqttproxy.const import REQUIRED_PYTHON_VER, RESTART_EXIT_CODE, __version__,__language__
+from mqttproxy.const import REQUIRED_PYTHON_VER, RESTART_EXIT_CODE, __version__,__language__,ALL_PROXIES_TOPIC
 import mqttproxy
 
 hosttype="host"
@@ -26,12 +27,12 @@ mqtt_client = mqtt.Client()
 config=get_config()
 logger=logging.getLogger(__name__)
 coloredlogs.install()
+sdnotifier=sdnotify.SystemdNotifier()
 
  # Eclipse Paho callbacks - http://www.eclipse.org/paho/clients/python/docs/#callbacks
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
-        logger.info('MQTT connection established')
-        print()
+        logger.info('MQTT connection established to {}')
     else:
         logger.error('Connection error with result code {} - {}'.format(str(rc), mqtt.connack_string(rc)))
         #kill main thread
@@ -64,7 +65,7 @@ def create_topic(suffix:str,base_topic:str="binary_sensor",is_general:bool=False
     """
     name=hostname
     if(is_general):
-        name="allmqttproxies"
+        name=ALL_PROXIES_TOPIC
     return "{}/{}/{}/{}".format(hassio_topic,base_topic,name,suffix)
 
 def add_device(deviceconfig:{})->{}:    
@@ -89,10 +90,13 @@ def announce(deviceconfig):
     deviceconfig=add_device(deviceconfig)
     publish_message(create_topic("{}/config".format(hosttype)),json.dumps(deviceconfig),retain=config.mqtt.retainConfig)
 
-def refresh_loop():
+def refresh_loop(timeout=30):
     while True:
-        logger.info("Sleeping 30s")
-        sleep(30)
+        logger.info("Sleeping {}s".format(timeout))
+        if(timeout>0):
+            sleep(timeout)
+        else:
+            break
 
 refresh=None
 
@@ -143,7 +147,7 @@ def main() -> int:
         announce(deviceconfig)
         mqtt_client.loop_start()
         sleep(0.1)
-        (rc,mid)=publish_message(create_topic("{}/state".format(hosttype)),'ON')
+        publish_message(create_topic("{}/state".format(hosttype)),'ON')
 
     if(not refresh):
         refresh=threading.Thread(target=refresh_loop,daemon=True)

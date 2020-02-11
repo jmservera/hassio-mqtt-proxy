@@ -1,9 +1,10 @@
 import mqttproxy
-from mqttproxy.__main__ import * 
+from mqttproxy.__main__ import *
+from mqttproxy.const import ALL_PROXIES_TOPIC
 
 import io
 import unittest
-import unittest.mock
+from unittest import mock
 
 from paho.mqtt.client import MQTTMessage
 from . common import get_fixture_path
@@ -13,23 +14,27 @@ class TestMqttProxy(unittest.TestCase):
         global hostname
         self.assertTrue(hostname.startswith(mqttproxy.__package__))
 
-    @unittest.mock.patch('sys.stderr', new_callable=io.StringIO)
+    @mock.patch('sys.stderr', new_callable=io.StringIO)
     def test_on_connect_success(self, mock_out):
         on_connect('client',None,None,0)
         output=mock_out.getvalue()
         self.assertTrue(output.index('MQTT connection established')>0)
 
-    @unittest.mock.patch('sys.stderr', new_callable=io.StringIO)
+    @mock.patch('sys.stderr', new_callable=io.StringIO)
     def test_on_connect_error(self, mock_out):
-        self.skipTest("Need to figure out how to test os_exit(1)")
+        os._exit=mock.MagicMock()
+        on_connect(None,None,None,1)
+        self.assertTrue(os._exit.called)
+        output=mock_out.getvalue()
+        self.assertTrue(output.index('Connection error')>0)
 
-    @unittest.mock.patch('sys.stderr', new_callable=io.StringIO)
+    @mock.patch('sys.stderr', new_callable=io.StringIO)
     def test_on_publish(self, mock_out):
         on_publish('cli','data',42)
         output=mock_out.getvalue()
         self.assertGreater(output.index("Message 42 published"),0)
 
-    @unittest.mock.patch('sys.stderr', new_callable=io.StringIO)
+    @mock.patch('sys.stderr', new_callable=io.StringIO)
     def test_on_message_success(self, mock_out):
         message=MQTTMessage(mid=0,topic="hello")
         message.payload="the message"
@@ -37,7 +42,7 @@ class TestMqttProxy(unittest.TestCase):
         output=mock_out.getvalue()
         self.assertGreater(output.index("Received message:the message"),0)
 
-    @unittest.mock.patch('sys.stderr', new_callable=io.StringIO)
+    @mock.patch('sys.stderr', new_callable=io.StringIO)
     def test_on_message_fail(self, mock_out):
         on_message('a','b',{})
         output=mock_out.getvalue()
@@ -56,8 +61,30 @@ class TestMqttProxy(unittest.TestCase):
         self.assertIsNotNone(dc["dev"]["model"])
         self.assertIsNotNone(dc["dev"]["sw_version"])
 
-    def test_announce(self):
-        self.skipTest("Should figure out how to mock mqtt_client")
+    def test_announce_success(self):
+        deviceconfig={
+            "name":"{}-state".format(hostname),
+            "unique_id":hostname,
+            "stat_t":create_topic("{}/state".format(hosttype)),
+        }
+        mqtt_client.publish=mock.Mock(return_value=(0,1))
+        announce(deviceconfig)
+        self.assertTrue(mqtt_client.publish.called)
+        self.assertGreater(len(mqtt_client.publish.call_args),0)
+
+    @mock.patch('sys.stderr', new_callable=io.StringIO)
+    def test_announce_fail(self,mock_out):
+        deviceconfig={
+            "name":"{}-state".format(hostname),
+            "unique_id":hostname,
+            "stat_t":create_topic("{}/state".format(hosttype)),
+        }
+        mqtt_client.publish=mock.Mock(return_value=(1,0))
+        announce(deviceconfig)
+        self.assertTrue(mqtt_client.publish.called)
+        self.assertGreater(len(mqtt_client.publish.call_args),0)
+        message=mock_out.getvalue()
+        self.assertGreater(message.index('Error 1'),0)
 
     def test_create_parser(self):
         parser=create_parser()
@@ -78,3 +105,15 @@ class TestMqttProxy(unittest.TestCase):
         global hostname
         onetopic=create_topic("one")
         self.assertEqual(onetopic,"homeassistant/binary_sensor/{}/one".format(hostname))
+
+    def test_create_general_topic(self):
+        global hostname
+        onetopic=create_topic("one",is_general=True)
+        self.assertEqual(onetopic,"homeassistant/binary_sensor/{}/one".format(ALL_PROXIES_TOPIC))
+
+    @mock.patch('sys.stderr', new_callable=io.StringIO)
+    def test_loop(self,mock_out):
+        refresh_loop(-1)
+        output=mock_out.getvalue()
+        self.assertGreater(output.index("Sleeping"),0)
+

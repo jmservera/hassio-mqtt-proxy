@@ -18,6 +18,7 @@ SERVER_PORT = 8080
 URL_ROOT = "/"
 URL_API = "/api/"
 
+ALL_PROXIES_TOPIC='allmqttproxies'
 
 # The exit code to send to request a restart
 RESTART_EXIT_CODE = 100

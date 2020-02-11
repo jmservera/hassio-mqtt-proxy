@@ -19,7 +19,6 @@ class TestConfiguration(unittest.TestCase):
 
     def test_main_config(self):
         config=self.current_config
-        self.assertTrue(config.web_admin.enabled)
         self.assertTrue(config.mqtt.retainConfig)
     
     def test_read_from_args(self):
@@ -27,19 +26,6 @@ class TestConfiguration(unittest.TestCase):
         parser = create_parser()
         
         config=self.current_config
-        
-        args=parser.parse_args(["--noWebServer"])
-        read_from_args(args)
-        self.assertFalse(config.web_admin.enabled)
-
-        args=parser.parse_args(["-p","42"])
-
-        reset_config()
-        config=self.current_config
-
-        read_from_args(args)
-        self.assertTrue(config.web_admin.enabled)
-        self.assertEqual(config.web_admin.port,42)
 
         args=parser.parse_args(["-r","true"])
         read_from_args(args)
@@ -49,10 +35,9 @@ class TestConfiguration(unittest.TestCase):
         read_from_args(args)
         self.assertTrue(config.mqtt.retainConfig)
 
-        args=parser.parse_args(["-r","true","-p","443","--production"])
+        args=parser.parse_args(["-r","true","--production"])
         read_from_args(args)
         self.assertTrue(config.mqtt.retainConfig)
-        self.assertEqual(config.web_admin.port,443)
         self.assertEqual(config.app.mode,"production")
         self.assertFalse(config.app.debug)
 
@@ -97,7 +82,6 @@ class TestConfiguration(unittest.TestCase):
         filename= path.join(tempdir, "configtest.xml")
         config=self.current_config
         config.mqtt.retainConfig=False
-        config.web_admin.port=443
         config.app.mode="production"
 
         save_config(filename)

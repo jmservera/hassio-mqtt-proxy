@@ -13,7 +13,7 @@ class TestMqttProxy(unittest.TestCase):
         global hostname
         self.assertTrue(hostname.startswith(mqttproxy.__package__))
 
-    @unittest.mock.patch('sys.stdout', new_callable=io.StringIO)
+    @unittest.mock.patch('sys.stderr', new_callable=io.StringIO)
     def test_on_connect_success(self, mock_out):
         on_connect('client',None,None,0)
         output=mock_out.getvalue()
@@ -23,13 +23,13 @@ class TestMqttProxy(unittest.TestCase):
     def test_on_connect_error(self, mock_out):
         self.skipTest("Need to figure out how to test os_exit(1)")
 
-    @unittest.mock.patch('sys.stdout', new_callable=io.StringIO)
+    @unittest.mock.patch('sys.stderr', new_callable=io.StringIO)
     def test_on_publish(self, mock_out):
         on_publish('cli','data',42)
         output=mock_out.getvalue()
-        self.assertGreater(output.index("Message id=42"),0)
+        self.assertGreater(output.index("Message 42 published"),0)
 
-    @unittest.mock.patch('sys.stdout', new_callable=io.StringIO)
+    @unittest.mock.patch('sys.stderr', new_callable=io.StringIO)
     def test_on_message_success(self, mock_out):
         message=MQTTMessage(mid=0,topic="hello")
         message.payload="the message"
@@ -61,13 +61,10 @@ class TestMqttProxy(unittest.TestCase):
 
     def test_create_parser(self):
         parser=create_parser()
-        args=parser.parse_args(["--noWebServer"])
-        self.assertTrue(args.noWebServer)
-        argscommand="-p 8080 -r true -c {} -m localhost -u username -P thisisapa$$"
+        argscommand="-r true -c {} -m localhost -u username -P thisisapa$$"
         inputargs=argscommand.format(get_fixture_path('config.yaml')).split(' ')
         args=parser.parse_args(inputargs)
         try:
-            self.assertEqual(args.webPort,8080)
             self.assertTrue(args.retainConfig)
             self.assertTrue(args.configfile.name.endswith("config.yaml"))
             self.assertEqual(args.mqttserver,"localhost")

@@ -5,9 +5,6 @@ from threading import Thread, Semaphore
 import asyncio
 import errno
 
-from mqttproxy.logger import log_error
-
-
 
 class ScanDelegate(DefaultDelegate):
     def __init__(self):

@@ -1,5 +1,7 @@
 from munch import Munch
-from mqttproxy.logger import log_debug
+import logging
+
+logger=logging.getLogger()
 
 def reset_config():
     global _config
@@ -13,10 +15,6 @@ mqtt:
     retainConfig: true
 ble:
     device: hc0
-
-web_admin:
-    enabled: true
-    port: 8080
 
 devices: []
 """)
@@ -49,10 +47,6 @@ def save_config(configpath="config.yaml"):
 
 def read_from_args(args):
     global _config
-    if(args.noWebServer):
-        _config.web_admin.enabled=False
-    if(args.webPort):
-        _config.web_admin.port=args.webPort
     if(args.retainConfig):
         _config.mqtt.retainConfig=args.retainConfig
     if(args.mqttserver):
@@ -65,5 +59,5 @@ def read_from_args(args):
         _config.app.mode="production"
         _config.app.debug=False
     if(args.configfile):
-        log_debug("Loading {0}".format(args.configfile))
+        logger.debug("Loading {0}".format(args.configfile))
         __read_config(args.configfile)

@@ -32,7 +32,7 @@ sdnotifier=sdnotify.SystemdNotifier()
  # Eclipse Paho callbacks - http://www.eclipse.org/paho/clients/python/docs/#callbacks
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
-        logger.info('MQTT connection established to {}')
+        logger.info('MQTT connection established.')
     else:
         logger.error('Connection error with result code {} - {}'.format(str(rc), mqtt.connack_string(rc)))
         #kill main thread

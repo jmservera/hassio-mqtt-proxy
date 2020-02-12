@@ -4,6 +4,9 @@ from bluepy.btle import Scanner, DefaultDelegate
 from threading import Thread, Semaphore
 import asyncio
 import errno
+import logging
+
+logger=logging.getLogger()
 
 
 class ScanDelegate(DefaultDelegate):
@@ -30,7 +33,7 @@ def scan(timeout=10.0)->[]:
                     print("  {} = {}".format(desc, value))
             return devices
         except Exception as ex:
-            log_error('Error {}'.format(ex))
+            logger.error('Error {}'.format(ex))
         finally:
             _semaphore.release()
     else:

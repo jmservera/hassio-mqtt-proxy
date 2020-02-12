@@ -22,6 +22,7 @@ class TestMqttProxy(unittest.TestCase):
 
     @mock.patch('sys.stderr', new_callable=io.StringIO)
     def test_on_connect_error(self, mock_out):
+        import os
         os._exit=mock.MagicMock()
         on_connect(None,None,None,1)
         self.assertTrue(os._exit.called)

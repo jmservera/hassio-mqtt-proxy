@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import atexit
 import argparse
 import json
 import os
@@ -29,23 +30,14 @@ logger=logging.getLogger(__name__)
 coloredlogs.install()
 sdnotifier=sdnotify.SystemdNotifier()
 
- # Eclipse Paho callbacks - http://www.eclipse.org/paho/clients/python/docs/#callbacks
-def on_connect(client, userdata, flags, rc):
-    if rc == 0:
-        logger.info('MQTT connection established.')
-    else:
-        logger.error('Connection error with result code {} - {}'.format(str(rc), mqtt.connack_string(rc)))
-        #kill main thread
-        os._exit(1)
+__cancel_main_loop=False
+__refresh_thread=None
 
-def on_publish(client, userdata, mid):
-    logger.info("Message {} published".format(mid))
-
-def on_message(client, userdata, message):
-    try:
-        logger.info('Received message:{}'.format(message.payload))
-    except Exception as ex:
-        logger.error(ex)
+def cancel_main_loop():
+    global __cancel_main_loop
+    if(__refresh_thread):
+        __cancel_main_loop=True
+        __refresh_thread.join()
 
 def create_topic(suffix:str,base_topic:str="binary_sensor",is_general:bool=False)->str:
     """Creates a topic string for a suffix, based on the current device name and general base_topic.
@@ -67,6 +59,28 @@ def create_topic(suffix:str,base_topic:str="binary_sensor",is_general:bool=False
     if(is_general):
         name=ALL_PROXIES_TOPIC
     return "{}/{}/{}/{}".format(hassio_topic,base_topic,name,suffix)
+
+hoststatetopic = create_topic("{}/state".format(hosttype))
+
+
+# Eclipse Paho callbacks - http://www.eclipse.org/paho/clients/python/docs/#callbacks
+def on_connect(client, userdata, flags, rc):
+    if rc == 0:
+        logger.info('MQTT connection established.')
+    else:
+        logger.error('Connection error with result code {} - {}'.format(str(rc), mqtt.connack_string(rc)))
+        #kill main thread
+        os._exit(1)
+
+def on_publish(client, userdata, mid):
+    logger.info("Message {} published".format(mid))
+
+def on_message(client, userdata, message):
+    try:
+        logger.info('Received message:{}'.format(message.payload))
+    except Exception as ex:
+        logger.error(ex)
+
 
 def add_device(deviceconfig:{})->{}:    
     deviceconfig["dev"]={
@@ -91,14 +105,18 @@ def announce(deviceconfig):
     publish_message(create_topic("{}/config".format(hosttype)),json.dumps(deviceconfig),retain=config.mqtt.retainConfig)
 
 def refresh_loop(timeout=30):
-    while True:
+    global __cancel_main_loop
+    __cancel_main_loop=False
+    while not __cancel_main_loop:
         logger.info("Sleeping {}s".format(timeout))
         if(timeout>0):
             sleep(timeout)
+            if not __cancel_main_loop:
+                publish_message(create_topic("{}/state".format(hosttype)),"ON")
         else:
             break
 
-refresh=None
+
 
 def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description='A simple mqtt proxy for publishing hassio modules that could not run inside hassio.')
@@ -111,9 +129,16 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument('-P','--mqttpassword',help="password for the mqtt connection")
     parser.add_argument("--version", action="version", version=__version__)
     return parser
-    
+
+def start_main_loop(timeout=-30):
+    global __refresh_thread
+    if(not __refresh_thread):
+        __refresh_thread=threading.Thread(target=refresh_loop,daemon=True,name='refresh_loop', args=[timeout])
+    if(not __refresh_thread.is_alive()):
+        __refresh_thread.start()
+    return __refresh_thread
+
 def main() -> int:
-    global refresh
     parser=create_parser()
     
     args=parser.parse_args()
@@ -142,21 +167,24 @@ def main() -> int:
         deviceconfig={
             "name":"{}-state".format(hostname),
             "unique_id":hostname,
-            "stat_t":create_topic("{}/state".format(hosttype)),
+            "stat_t":hoststatetopic,
         }
         announce(deviceconfig)
         mqtt_client.loop_start()
         sleep(0.1)
-        publish_message(create_topic("{}/state".format(hosttype)),'ON')
+        publish_message(hoststatetopic,'ON')
 
-    if(not refresh):
-        refresh=threading.Thread(target=refresh_loop,daemon=True)
-    if(not refresh.is_alive()):
-        refresh.start()
+        start_main_loop().join()
 
-    refresh.join()
-    
     return 0
+
+@atexit.register
+def goodbye():
+    logger.info("Trying to exit gracefully from {}".format(hostname))
+    if mqtt_client:
+        publish_message(hoststatetopic,"OFF")
+        mqtt_client.loop_stop()
+        mqtt_client.disconnect()
 
 if __name__ == "__main__":
     sys.exit(main())

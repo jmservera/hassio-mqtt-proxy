@@ -114,7 +114,24 @@ class TestMqttProxy(unittest.TestCase):
 
     @mock.patch('sys.stderr', new_callable=io.StringIO)
     def test_loop(self,mock_out):
+        start_main_loop(0.1)
+        output=mock_out.getvalue()
+        sleep(0.1)
+        cancel_main_loop()
+        self.assertGreater(output.index("Sleeping"),0)
+
+    @mock.patch('sys.stderr', new_callable=io.StringIO)
+    def test_no_loop(self,mock_out):
         refresh_loop(-1)
         output=mock_out.getvalue()
         self.assertGreater(output.index("Sleeping"),0)
 
+    @mock.patch('sys.stderr', new_callable=io.StringIO)
+    def test_exit(self, mock_out):
+        mqtt_client.publish=mock.Mock(return_value=(0,1))
+        mqtt_client.disconnect=mock.Mock()
+        mqtt_client.loop_stop=mock.Mock()
+        goodbye()
+        self.assertTrue(mqtt_client.publish.called)
+        self.assertTrue(mqtt_client.disconnect.called)
+        self.assertTrue(mqtt_client.loop_stop.called)

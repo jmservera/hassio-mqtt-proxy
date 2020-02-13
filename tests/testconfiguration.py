@@ -51,6 +51,15 @@ class TestConfiguration(unittest.TestCase):
         if(args.configfile):
             args.configfile.close()
     
+    def test_device_list(self):
+        config=get_config()
+
+        self.assertEqual(len(config.devices),1)
+        self.assertIsNotNone(config.devices[0])
+        self.assertEqual(config.devices[0].name,"back_garden_1")
+        self.assertEqual(config.devices[0].address,"C4:7C:8d:66:D7:EB")
+
+    
     def test_read_mqtt_from_args(self):
         parser = create_parser()
         config= self.current_config

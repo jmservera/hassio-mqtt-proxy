@@ -16,7 +16,9 @@ mqtt:
 ble:
     device: hc0
 
-devices: []
+devices:
+    - name: back_garden_1
+      address: 'C4:7C:8d:66:D7:EB'
 """)
     return _config
 

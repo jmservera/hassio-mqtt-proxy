@@ -3,6 +3,7 @@ from mqttproxy.__main__ import *
 from mqttproxy.const import ALL_PROXIES_TOPIC
 
 import io
+from time import sleep
 import unittest
 from unittest import mock
 

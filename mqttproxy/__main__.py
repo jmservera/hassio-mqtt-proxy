@@ -184,7 +184,7 @@ def main() -> int:
             else:
                 mqtt_client.username_pw_set(config.mqtt.user)
 
-        mqtt_client.connect('localhost',port=1883,keepalive=60)
+        mqtt_client.connect(config.mqtt.server,port=config.mqtt.port,keepalive=60)
     except Exception as ex:
         logger.error('MQTT connection error:{}'.format(ex))
         return 1

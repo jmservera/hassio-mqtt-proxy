@@ -13,6 +13,7 @@ mqtt:
     user: mosquitto
     password: mosquitto
     retainConfig: true
+    port: 1883
 ble:
     device: hc0
 

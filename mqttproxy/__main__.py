@@ -21,6 +21,8 @@ import mqttproxy
 
 hosttype="host"
 hassio_topic="homeassistant"
+host_sensor="binary_sensor"
+host_device_class="connectivity"
 hostname="{}-{:x}".format(mqttproxy.__package__,uuid.getnode())
 manufacturer="jmservera"
 
@@ -30,30 +32,30 @@ logger=logging.getLogger(__name__)
 coloredlogs.install()
 sdnotifier=sdnotify.SystemdNotifier()
 
-__cancel_main_loop=False
 __refresh_thread=None
+__refresh_thread_semaphore=None
+__refresh_interval=30
 
 def cancel_main_loop():
-    global __cancel_main_loop
     if(__refresh_thread):
-        __cancel_main_loop=True
+        __refresh_thread_semaphore.release()
         __refresh_thread.join()
 
-def create_topic(suffix:str,base_topic:str="binary_sensor",is_general:bool=False)->str:
+def create_topic(suffix:str,base_topic:str=host_sensor,is_general:bool=False)->str:
     """Creates a topic string for a suffix, based on the current device name and general base_topic.
 
     It is used to get consistent topic names for all the features.
 
     suffix: a string with the name of the last part of the topic
-    base_topic: defines the type of sensor, it is binary_sensor by default (on/off sensor)
+    base_topic: defines the type of sensor, it is binary_sensor by default (a generic binary_sensor)
     is_general: when True, will use the same string for all the proxies, when False it uses the hostname to differentiate the topic.
 
     Returns a string formed by the different values, for example:
-    create_topic("cmnd") will create a topic named homeassistant/binary_sensor/mqttproxy-[id]/cmnd
+    create_topic("cmnd") will create a topic named homeassistant/sensor/mqttproxy-[id]/cmnd
 
     Or 
 
-    create_topic("activate",is_general=True) will create a topic named homeassistant/binary_sensor/allmqttproxies/activate
+    create_topic("activate",is_general=True) will create a topic named homeassistant/sensor/allmqttproxies/activate
     """
     name=hostname
     if(is_general):
@@ -61,7 +63,7 @@ def create_topic(suffix:str,base_topic:str="binary_sensor",is_general:bool=False
     return "{}/{}/{}/{}".format(hassio_topic,base_topic,name,suffix)
 
 hoststatetopic = create_topic("{}/state".format(hosttype))
-
+hostavailabilitytopic = create_topic("{}/availability".format(hosttype))
 
 # Eclipse Paho callbacks - http://www.eclipse.org/paho/clients/python/docs/#callbacks
 def on_connect(client, userdata, flags, rc):
@@ -75,9 +77,22 @@ def on_connect(client, userdata, flags, rc):
 def on_publish(client, userdata, mid):
     logger.info("Message {} published".format(mid))
 
+
+@atexit.register
+def goodbye():
+    logger.info("Trying to exit gracefully from {}".format(hostname))    
+    if mqtt_client:
+        publish_message(hoststatetopic,"OFF")
+        publish_message(hostavailabilitytopic,"offline")
+        mqtt_client.loop_stop()
+        mqtt_client.disconnect()
+
 def on_message(client, userdata, message):
     try:
         logger.info('Received message:{}'.format(message.payload))
+        if(message.payload==b"STOP"):
+            cancel_main_loop()
+
     except Exception as ex:
         logger.error(ex)
 
@@ -104,18 +119,17 @@ def announce(deviceconfig):
     deviceconfig=add_device(deviceconfig)
     publish_message(create_topic("{}/config".format(hosttype)),json.dumps(deviceconfig),retain=config.mqtt.retainConfig)
 
-def refresh_loop(timeout=30):
-    global __cancel_main_loop
-    __cancel_main_loop=False
-    while not __cancel_main_loop:
-        logger.info("Sleeping {}s".format(timeout))
-        if(timeout>0):
-            sleep(timeout)
-            if not __cancel_main_loop:
-                publish_message(create_topic("{}/state".format(hosttype)),"ON")
-        else:
-            break
+def refresh_loop(timeout:float=30):
+    global __refresh_interval
 
+    __refresh_interval=timeout
+
+    while True:
+        publish_message(create_topic("{}/state".format(hosttype)),"ON")
+        publish_message(create_topic("{}/availability".format(hosttype)),"online")
+        logger.info("Sleeping {}s".format(__refresh_interval))
+        if(timeout<0 or __refresh_thread_semaphore.acquire(True,__refresh_interval)):
+            break
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -130,15 +144,19 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=__version__)
     return parser
 
-def start_main_loop(timeout=-30):
+def start_main_loop(timeout=30):
     global __refresh_thread
+    global __refresh_thread_semaphore
+
     if(not __refresh_thread):
+        __refresh_thread_semaphore=threading.Semaphore(0)
         __refresh_thread=threading.Thread(target=refresh_loop,daemon=True,name='refresh_loop', args=[timeout])
     if(not __refresh_thread.is_alive()):
         __refresh_thread.start()
     return __refresh_thread
 
 def main() -> int:
+    
     parser=create_parser()
     
     args=parser.parse_args()
@@ -168,23 +186,16 @@ def main() -> int:
             "name":"{}-state".format(hostname),
             "unique_id":hostname,
             "stat_t":hoststatetopic,
+            "availability_topic":hostavailabilitytopic,
+            "expire_after": __refresh_interval*2,
+            "device_class": host_device_class
         }
         announce(deviceconfig)
         mqtt_client.loop_start()
         sleep(0.1)
-        publish_message(hoststatetopic,'ON')
-
         start_main_loop().join()
 
     return 0
-
-@atexit.register
-def goodbye():
-    logger.info("Trying to exit gracefully from {}".format(hostname))
-    if mqtt_client:
-        publish_message(hoststatetopic,"OFF")
-        mqtt_client.loop_stop()
-        mqtt_client.disconnect()
 
 if __name__ == "__main__":
     sys.exit(main())

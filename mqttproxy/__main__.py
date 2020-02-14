@@ -162,10 +162,15 @@ def start_main_loop(timeout=30):
     return __refresh_thread
 
 def main() -> int:
+    global config
+
     parser=create_parser()
     args=parser.parse_args()
 
     read_from_args(args)
+
+    config=get_config()
+    logger.debug(config)
 
     mqtt_client.on_connect = on_connect
     mqtt_client.on_publish = on_publish

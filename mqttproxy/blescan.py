@@ -6,8 +6,7 @@ import asyncio
 import errno
 import logging
 
-logger=logging.getLogger()
-
+logger=logging.getLogger(__name__)
 
 class ScanDelegate(DefaultDelegate):
     def __init__(self):
@@ -28,9 +27,9 @@ def scan(timeout=10.0)->[]:
             devices = scanner.scan(timeout)
 
             for dev in devices:
-                print("Device {} ({}), RSSI={} dB".format(dev.addr, dev.addrType, dev.rssi))
+                logger.info("Device {} ({}), RSSI={} dB".format(dev.addr, dev.addrType, dev.rssi))
                 for (adtype, desc, value) in dev.getScanData():
-                    print("  {} = {}".format(desc, value))
+                    logger.info("  {} = {}".format(desc, value))
             return devices
         except Exception as ex:
             logger.error('Error {}'.format(ex))

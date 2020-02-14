@@ -17,6 +17,7 @@ import sdnotify
 #custom libs
 from mqttproxy.configuration import read_from_args,get_config
 from mqttproxy.const import REQUIRED_PYTHON_VER, RESTART_EXIT_CODE, __version__,__language__,ALL_PROXIES_TOPIC
+from mqttproxy.blescan import scan
 import mqttproxy
 
 hosttype="host"
@@ -62,8 +63,12 @@ def create_topic(suffix:str,base_topic:str=host_sensor,is_general:bool=False)->s
         name=ALL_PROXIES_TOPIC
     return "{}/{}/{}/{}".format(hassio_topic,base_topic,name,suffix)
 
-hoststatetopic = create_topic("{}/state".format(hosttype))
-hostavailabilitytopic = create_topic("{}/availability".format(hosttype))
+def create_host_topic(topic:str):
+    return create_topic("{}/{}".format(hosttype,topic))
+
+hoststatetopic = create_host_topic("state")
+hostavailabilitytopic = create_host_topic("availability")
+hostcommandtopic= create_host_topic("cmnd")
 
 # Eclipse Paho callbacks - http://www.eclipse.org/paho/clients/python/docs/#callbacks
 def on_connect(client, userdata, flags, rc):
@@ -77,21 +82,22 @@ def on_connect(client, userdata, flags, rc):
 def on_publish(client, userdata, mid):
     logger.info("Message {} published".format(mid))
 
-
-@atexit.register
-def goodbye():
-    logger.info("Trying to exit gracefully from {}".format(hostname))    
-    if mqtt_client:
-        publish_message(hoststatetopic,"OFF")
-        publish_message(hostavailabilitytopic,"offline")
-        mqtt_client.loop_stop()
-        mqtt_client.disconnect()
-
 def on_message(client, userdata, message):
     try:
         logger.info('Received message:{}'.format(message.payload))
-        if(message.payload==b"STOP"):
-            cancel_main_loop()
+        
+        def cases(payload):
+            switcher={
+                b'STOP': cancel_main_loop,
+                b'SCAN': scan
+            }
+            foo=switcher.get(payload)
+            if foo:
+                return foo()
+            else:
+                logger.warning('Command unknown: {}'.format(payload))
+
+        cases(message.payload)
 
     except Exception as ex:
         logger.error(ex)
@@ -117,7 +123,7 @@ def publish_message(topic, message, retain=False)->(int,int):
 
 def announce(deviceconfig):
     deviceconfig=add_device(deviceconfig)
-    publish_message(create_topic("{}/config".format(hosttype)),json.dumps(deviceconfig),retain=config.mqtt.retainConfig)
+    publish_message(create_host_topic("config"),json.dumps(deviceconfig),retain=config.mqtt.retainConfig)
 
 def refresh_loop(timeout:float=30):
     global __refresh_interval
@@ -125,8 +131,8 @@ def refresh_loop(timeout:float=30):
     __refresh_interval=timeout
 
     while True:
-        publish_message(create_topic("{}/state".format(hosttype)),"ON")
-        publish_message(create_topic("{}/availability".format(hosttype)),"online")
+        publish_message(hoststatetopic,"ON")
+        publish_message(hostavailabilitytopic,"online")
         logger.info("Sleeping {}s".format(__refresh_interval))
         if(timeout<0 or __refresh_thread_semaphore.acquire(True,__refresh_interval)):
             break
@@ -156,9 +162,7 @@ def start_main_loop(timeout=30):
     return __refresh_thread
 
 def main() -> int:
-    
     parser=create_parser()
-    
     args=parser.parse_args()
 
     read_from_args(args)
@@ -166,6 +170,7 @@ def main() -> int:
     mqtt_client.on_connect = on_connect
     mqtt_client.on_publish = on_publish
     mqtt_client.on_message = on_message
+
     try:
         logger.debug(config)
         if(config.mqtt.user):
@@ -179,9 +184,8 @@ def main() -> int:
         logger.error('MQTT connection error:{}'.format(ex))
         return 1
     else:
-        listen_topic=create_topic("cmnd")
-        mqtt_client.subscribe(listen_topic)
-        logger.info("Listening on topic: {}".format(listen_topic))
+        mqtt_client.subscribe(hostcommandtopic)
+        logger.info("Listening on topic: {}".format(hostcommandtopic))
         deviceconfig={
             "name":"{}-state".format(hostname),
             "unique_id":hostname,
@@ -190,12 +194,21 @@ def main() -> int:
             "expire_after": __refresh_interval*2,
             "device_class": host_device_class
         }
-        announce(deviceconfig)
         mqtt_client.loop_start()
         sleep(0.1)
+        announce(deviceconfig)
         start_main_loop().join()
 
     return 0
+
+@atexit.register
+def goodbye():
+    logger.info("Trying to exit gracefully from {}".format(hostname))    
+    if mqtt_client:
+        publish_message(hoststatetopic,"OFF")
+        publish_message(hostavailabilitytopic,"offline")
+        mqtt_client.loop_stop()
+        mqtt_client.disconnect()
 
 if __name__ == "__main__":
     sys.exit(main())

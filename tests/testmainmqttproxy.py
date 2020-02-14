@@ -12,7 +12,6 @@ from . common import get_fixture_path
 
 class TestMqttProxy(unittest.TestCase):
     def test_hostname(self):
-        global hostname
         self.assertTrue(hostname.startswith(mqttproxy.__package__))
 
     @mock.patch('sys.stderr', new_callable=io.StringIO)
@@ -104,12 +103,14 @@ class TestMqttProxy(unittest.TestCase):
                 args.configfile.close()
 
     def test_create_topic(self):
-        global hostname
         onetopic=create_topic("one")
         self.assertEqual(onetopic,"homeassistant/binary_sensor/{}/one".format(hostname))
 
+    def test_create_host_topic(self):
+        onetopic=create_host_topic("one")
+        self.assertEqual(onetopic,"homeassistant/binary_sensor/{}/{}/one".format(hostname,hosttype))
+
     def test_create_general_topic(self):
-        global hostname
         onetopic=create_topic("one",is_general=True)
         self.assertEqual(onetopic,"homeassistant/binary_sensor/{}/one".format(ALL_PROXIES_TOPIC))
 

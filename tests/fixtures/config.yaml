@@ -2,10 +2,11 @@ app:
     mode: development # production, test
     debug: true
 mqtt:
-    server: localhost
+    server: testlocalhost
     user: testuser 
     password: testpassword
     retainConfig: true
+    port: 1111
 ble:
     device: hc0
 

@@ -1,6 +1,7 @@
 import mqttproxy
 from mqttproxy.__main__ import *
 from mqttproxy.const import ALL_PROXIES_TOPIC
+from mqttproxy.configuration import load_config,get_config,reset_config
 
 import io
 from time import sleep
@@ -11,6 +12,9 @@ from paho.mqtt.client import MQTTMessage
 from . common import get_fixture_path
 
 class TestMqttProxy(unittest.TestCase):
+    def tearDown(self):
+        reset_config()
+
     def test_hostname(self):
         self.assertTrue(hostname.startswith(mqttproxy.__package__))
 
@@ -140,3 +144,23 @@ class TestMqttProxy(unittest.TestCase):
         self.assertTrue(mqtt_client.publish.called)
         self.assertTrue(mqtt_client.disconnect.called)
         self.assertTrue(mqtt_client.loop_stop.called)
+
+    def test_connect_to_mqtt_user_pwd(self):
+        path= get_fixture_path("config.yaml")
+        load_config(path)
+        config=get_config()
+
+        mqtt_client.username_pw_set=mock.Mock()
+        mqtt_client.connect=mock.Mock()
+        mqtt_client.subscribe=mock.Mock()
+        mqtt_client.loop_start=mock.Mock()
+        mqtt_client.publish=mock.Mock(return_value=(0,1))
+
+        connect_to_mqtt()
+
+        self.assertTrue(mqtt_client.username_pw_set.called)
+        self.assertEqual(config.mqtt.user, mqtt_client.username_pw_set.call_args[0][0])
+        self.assertEqual(config.mqtt.password, mqtt_client.username_pw_set.call_args[0][1])
+        self.assertTrue(mqtt_client.connect.called)
+        self.assertEqual(config.mqtt.server,mqtt_client.connect.call_args[0][0])
+        self.assertEqual(config.mqtt.port,mqtt_client.connect.call_args[1]['port'])

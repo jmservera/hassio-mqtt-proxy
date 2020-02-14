@@ -161,13 +161,8 @@ def start_main_loop(timeout=30):
         __refresh_thread.start()
     return __refresh_thread
 
-def main() -> int:
+def connect_to_mqtt():
     global config
-
-    parser=create_parser()
-    args=parser.parse_args()
-
-    read_from_args(args)
 
     config=get_config()
     logger.debug(config)
@@ -176,34 +171,43 @@ def main() -> int:
     mqtt_client.on_publish = on_publish
     mqtt_client.on_message = on_message
 
-    try:
-        logger.debug(config)
-        if(config.mqtt.user):
-            if(config.mqtt.password):
-                mqtt_client.username_pw_set(config.mqtt.user,config.mqtt.password)
-            else:
-                mqtt_client.username_pw_set(config.mqtt.user)
+    if(config.mqtt.user):
+        if(config.mqtt.password):
+            mqtt_client.username_pw_set(config.mqtt.user,config.mqtt.password)
+        else:
+            mqtt_client.username_pw_set(config.mqtt.user)
 
-        mqtt_client.connect(config.mqtt.server,port=config.mqtt.port,keepalive=60)
+    mqtt_client.connect(config.mqtt.server,port=config.mqtt.port,keepalive=60)
+    mqtt_client.subscribe(hostcommandtopic)
+    logger.info("Listening on topic: {}".format(hostcommandtopic))
+    mqtt_client.loop_start()
+    sleep(0.1)
+    deviceconfig={
+        "name":"{}-state".format(hostname),
+        "unique_id":hostname,
+        "stat_t":hoststatetopic,
+        "availability_topic":hostavailabilitytopic,
+        "expire_after": __refresh_interval*2,
+        "device_class": host_device_class
+    }
+    announce(deviceconfig)
+        
+
+def main() -> int:
+    global config
+
+    parser=create_parser()
+    args=parser.parse_args()
+
+    read_from_args(args)
+
+    try:
+        connect_to_mqtt()
     except Exception as ex:
         logger.error('MQTT connection error:{}'.format(ex))
         return 1
-    else:
-        mqtt_client.subscribe(hostcommandtopic)
-        logger.info("Listening on topic: {}".format(hostcommandtopic))
-        deviceconfig={
-            "name":"{}-state".format(hostname),
-            "unique_id":hostname,
-            "stat_t":hoststatetopic,
-            "availability_topic":hostavailabilitytopic,
-            "expire_after": __refresh_interval*2,
-            "device_class": host_device_class
-        }
-        mqtt_client.loop_start()
-        sleep(0.1)
-        announce(deviceconfig)
-        start_main_loop().join()
 
+    start_main_loop().join()
     return 0
 
 @atexit.register

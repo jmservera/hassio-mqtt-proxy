@@ -19,12 +19,15 @@ from mqttproxy.configuration import read_from_args,get_config
 from mqttproxy.const import REQUIRED_PYTHON_VER, RESTART_EXIT_CODE, __version__,__language__,ALL_PROXIES_TOPIC
 from mqttproxy.blescan import scan
 import mqttproxy
+import socket
 
 hosttype="host"
 hassio_topic="homeassistant"
-host_sensor="binary_sensor"
+host_sensor="sensor"
 host_device_class="connectivity"
-hostname="{}-{:x}".format(mqttproxy.__package__,uuid.getnode())
+hostname=socket.gethostname()
+host_uniqueid="{}_{:x}".format(mqttproxy.__package__,uuid.getnode())
+host_status_uniqueid="{}_status".format(host_uniqueid)
 manufacturer="jmservera"
 
 mqtt_client = mqtt.Client()
@@ -42,33 +45,12 @@ def cancel_main_loop():
         __refresh_thread_semaphore.release()
         __refresh_thread.join()
 
-def create_topic(suffix:str,base_topic:str=host_sensor,is_general:bool=False)->str:
-    """Creates a topic string for a suffix, based on the current device name and general base_topic.
 
-    It is used to get consistent topic names for all the features.
-
-    suffix: a string with the name of the last part of the topic
-    base_topic: defines the type of sensor, it is binary_sensor by default (a generic binary_sensor)
-    is_general: when True, will use the same string for all the proxies, when False it uses the hostname to differentiate the topic.
-
-    Returns a string formed by the different values, for example:
-    create_topic("cmnd") will create a topic named homeassistant/sensor/mqttproxy-[id]/cmnd
-
-    Or 
-
-    create_topic("activate",is_general=True) will create a topic named homeassistant/sensor/allmqttproxies/activate
-    """
-    name=hostname
-    if(is_general):
-        name=ALL_PROXIES_TOPIC
-    return "{}/{}/{}/{}".format(hassio_topic,base_topic,name,suffix)
-
-def create_host_topic(topic:str):
-    return create_topic("{}/{}".format(hosttype,topic))
-
-hoststatetopic = create_host_topic("state")
-hostavailabilitytopic = create_host_topic("availability")
-hostcommandtopic= create_host_topic("cmnd")
+basetopic= "{}/{}/".format(hostname,"tele")
+hoststatetopic = "{}state".format(basetopic)
+hostavailabilitytopic = "{}LWT".format(basetopic)
+hostcommandtopic= "{}/cmnd".format(hostname)
+hostconfigtopic="{}/{}/{}/config".format(hassio_topic,host_sensor,host_status_uniqueid)
 
 # Eclipse Paho callbacks - http://www.eclipse.org/paho/clients/python/docs/#callbacks
 def on_connect(client, userdata, flags, rc):
@@ -104,8 +86,8 @@ def on_message(client, userdata, message):
 
 
 def add_device(deviceconfig:{})->{}:    
-    deviceconfig["dev"]={
-            "identifiers":["raspi",hostname],
+    deviceconfig["device"]={
+            "identifiers":[host_uniqueid],
             "name":hostname,
             "manufacturer":manufacturer,
             "model":platform(),
@@ -123,7 +105,7 @@ def publish_message(topic, message, retain=False)->(int,int):
 
 def announce(deviceconfig):
     deviceconfig=add_device(deviceconfig)
-    publish_message(create_host_topic("config"),json.dumps(deviceconfig),retain=config.mqtt.retainConfig)
+    publish_message(hostconfigtopic,json.dumps(deviceconfig),retain=config.mqtt.retainConfig)
 
 def refresh_loop(timeout:float=30):
     global __refresh_interval
@@ -183,12 +165,12 @@ def connect_to_mqtt():
     mqtt_client.loop_start()
     sleep(0.1)
     deviceconfig={
-        "name":"{}-state".format(hostname),
-        "unique_id":hostname,
-        "stat_t":hoststatetopic,
-        "availability_topic":hostavailabilitytopic,
+        "name":hostname,
+        "unique_id":host_status_uniqueid,
+        "stat_t":"~state",
+        "availability_topic":"~LWT",
         "expire_after": __refresh_interval*2,
-        "device_class": host_device_class
+        "~":basetopic
     }
     announce(deviceconfig)
         
@@ -212,7 +194,7 @@ def main() -> int:
 
 @atexit.register
 def goodbye():
-    logger.info("Trying to exit gracefully from {}".format(hostname))    
+    logger.info("Trying to exit gracefully from {}".format(host_uniqueid))    
     if mqtt_client:
         publish_message(hoststatetopic,"OFF")
         publish_message(hostavailabilitytopic,"offline")

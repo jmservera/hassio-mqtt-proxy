@@ -16,7 +16,7 @@ class TestMqttProxy(unittest.TestCase):
         reset_config()
 
     def test_hostname(self):
-        self.assertTrue(hostname.startswith(mqttproxy.__package__))
+        self.assertTrue(host_uniqueid.startswith(mqttproxy.__package__))
 
     @mock.patch('sys.stderr', new_callable=io.StringIO)
     def test_on_connect_success(self, mock_out):
@@ -55,22 +55,23 @@ class TestMqttProxy(unittest.TestCase):
         self.assertGreater(output.index("object has no attribute"),0)
 
     def test_add_device(self):
-        deviceconfig={"dev":None}
+        deviceconfig={"device":None}
         dc=add_device(deviceconfig)
         #test they are the same object
         self.assertEqual(deviceconfig,dc)
         #test config added
-        self.assertIsNotNone(dc["dev"]["identifiers"])
-        self.assertIsNotNone(dc["dev"]["name"])
-        self.assertIsNotNone(dc["dev"]["manufacturer"])
-        self.assertIsNotNone(dc["dev"]["model"])
-        self.assertIsNotNone(dc["dev"]["sw_version"])
+        self.assertIsNotNone(dc["device"]["identifiers"])
+        self.assertIsNotNone(dc["device"]["name"])
+        self.assertIsNotNone(dc["device"]["manufacturer"])
+        self.assertIsNotNone(dc["device"]["model"])
+        self.assertIsNotNone(dc["device"]["sw_version"])
 
     def test_announce_success(self):
         deviceconfig={
-            "name":"{}-state".format(hostname),
-            "unique_id":hostname,
-            "stat_t":create_topic("{}/state".format(hosttype)),
+            "name":"{}_state".format(host_uniqueid),
+            "unique_id":host_uniqueid,
+            "stat_t":"~state",
+            "~":"test/tele/"
         }
         mqtt_client.publish=mock.Mock(return_value=(0,1))
         announce(deviceconfig)
@@ -80,9 +81,10 @@ class TestMqttProxy(unittest.TestCase):
     @mock.patch('sys.stderr', new_callable=io.StringIO)
     def test_announce_fail(self,mock_out):
         deviceconfig={
-            "name":"{}-state".format(hostname),
-            "unique_id":hostname,
-            "stat_t":create_topic("{}/state".format(hosttype)),
+            "name":"{}_state".format(host_uniqueid),
+            "unique_id":host_uniqueid,
+            "stat_t":"~state",
+            "~":"test/tele/"
         }
         mqtt_client.publish=mock.Mock(return_value=(1,0))
         announce(deviceconfig)
@@ -105,18 +107,6 @@ class TestMqttProxy(unittest.TestCase):
         finally:
             if(args.configfile):
                 args.configfile.close()
-
-    def test_create_topic(self):
-        onetopic=create_topic("one")
-        self.assertEqual(onetopic,"homeassistant/binary_sensor/{}/one".format(hostname))
-
-    def test_create_host_topic(self):
-        onetopic=create_host_topic("one")
-        self.assertEqual(onetopic,"homeassistant/binary_sensor/{}/{}/one".format(hostname,hosttype))
-
-    def test_create_general_topic(self):
-        onetopic=create_topic("one",is_general=True)
-        self.assertEqual(onetopic,"homeassistant/binary_sensor/{}/one".format(ALL_PROXIES_TOPIC))
 
     @mock.patch('sys.stderr', new_callable=io.StringIO)
     def test_loop(self,mock_out):

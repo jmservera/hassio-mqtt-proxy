@@ -173,7 +173,7 @@ class TestMqttProxy(unittest.TestCase):
         mqtt_client.publish=mock.Mock(return_value=(0,1))
         mqtt_client.disconnect=mock.Mock(side_effect=Exception(_mock_error_msg))
         mqtt_client.loop_stop=mock.Mock()
-        mqtt_client._state=mqtt.mqtt_cs_connected
+        mqtt_client._state=mqtt_cs_connected
         goodbye()
 
         output=mock_out.getvalue()

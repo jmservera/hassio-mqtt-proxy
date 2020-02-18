@@ -43,12 +43,12 @@ class TestMqttProxy(unittest.TestCase):
         output=mock_out.getvalue()
         self.assertGreater(output.index("Message 42 published"),0)
 
-    @mock.patch('mqttproxy.__main__.cancel_main_loop')
-    def test_on_message_stop(self, cancel_main_loop):
+    @mock.patch('mqttproxy.__main__.__main_sched.shutdown')
+    def test_on_message_stop(self, shutdown):
         message=MQTTMessage(mid=0,topic="hello")
         message.payload=b"STOP"
         on_message('cli','data',message)
-        self.assertTrue(cancel_main_loop.called)
+        self.assertTrue(shutdown.called)
 
     @mock.patch('mqttproxy.__main__.scan')
     def test_on_message_scan(self,scan):
@@ -129,18 +129,7 @@ class TestMqttProxy(unittest.TestCase):
     @mock.patch('sys.stderr', new_callable=io.StringIO)
     def test_loop(self,mock_out):
         mqtt_client.publish=mock.Mock(return_value=(0,1))
-        start_main_loop(0.1)
-        output=mock_out.getvalue()
-        sleep(0.1)
-        cancel_main_loop()
-        self.assertGreater(output.index("Sleeping"),0)
-
-    @mock.patch('sys.stderr', new_callable=io.StringIO)
-    def test_no_loop(self,mock_out):
-        mqtt_client.publish=mock.Mock(return_value=(0,1))
-        mqtt_client.disconnect=mock.Mock()
-        mqtt_client.loop_stop=mock.Mock()
-        refresh_loop(-1)
+        refresh_message()
         output=mock_out.getvalue()
         self.assertGreater(output.index("Sleeping"),0)
 

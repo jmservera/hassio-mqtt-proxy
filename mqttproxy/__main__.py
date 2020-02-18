@@ -8,11 +8,12 @@ import paho.mqtt.client as mqtt
 from platform import platform
 import sys
 import threading
-from time import sleep
+from time import time,sleep
 from unidecode import unidecode
 import uuid
 import coloredlogs, logging
 import sdnotify
+from apscheduler.schedulers import blocking
 
 #custom libs
 from mqttproxy.configuration import read_from_args,get_config
@@ -20,6 +21,7 @@ from mqttproxy.const import REQUIRED_PYTHON_VER, RESTART_EXIT_CODE, __version__,
 from mqttproxy.blescan import scan
 import mqttproxy
 import socket
+
 
 hosttype="host"
 hassio_topic="homeassistant"
@@ -36,14 +38,9 @@ logger=logging.getLogger(__name__)
 coloredlogs.install()
 sdnotifier=sdnotify.SystemdNotifier()
 
-__refresh_thread=None
-__refresh_thread_semaphore=None
 __refresh_interval=30
-
-def cancel_main_loop():
-    if(__refresh_thread):
-        __refresh_thread_semaphore.release()
-        __refresh_thread.join()
+__main_sched=blocking.BlockingScheduler()
+__exit= threading.Event()
 
 
 basetopic= "{}/{}/".format(hostname,"tele")
@@ -70,7 +67,7 @@ def on_message(client, userdata, message):
         
         def cases(payload):
             switcher={
-                b'STOP': cancel_main_loop,
+                b'STOP': __main_sched.shutdown,
                 b'SCAN': scan
             }
             foo=switcher.get(payload)
@@ -112,16 +109,6 @@ def refresh_message():
     publish_message(hostavailabilitytopic,"online")
     logger.info("Sleeping {}s".format(__refresh_interval))
 
-def refresh_loop(timeout:float=30):
-    global __refresh_interval
-
-    __refresh_interval=timeout
-
-    while True:
-        refresh_message()
-        if(timeout<0 or __refresh_thread_semaphore.acquire(True,__refresh_interval)):
-            break
-
 
 def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description='A simple mqtt proxy for publishing hassio modules that could not run inside hassio.')
@@ -134,17 +121,6 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument('-P','--mqttpassword',help="password for the mqtt connection")
     parser.add_argument("--version", action="version", version=__version__)
     return parser
-
-def start_main_loop(timeout=30):
-    global __refresh_thread
-    global __refresh_thread_semaphore
-
-    if(not __refresh_thread):
-        __refresh_thread_semaphore=threading.Semaphore(0)
-        __refresh_thread=threading.Thread(target=refresh_loop,daemon=True,name='refresh_loop', args=[timeout])
-    if(not __refresh_thread.is_alive()):
-        __refresh_thread.start()
-    return __refresh_thread
 
 def connect_to_mqtt():
     global config
@@ -181,6 +157,7 @@ def connect_to_mqtt():
 
 def main() -> int:
     global config
+    global __refresh_interval
 
     parser=create_parser()
     args=parser.parse_args()
@@ -193,7 +170,11 @@ def main() -> int:
         logger.error('MQTT connection error:{}'.format(ex))
         return 1
 
-    start_main_loop().join()
+    __refresh_interval=10
+    __main_sched.add_job(refresh_message,'interval',seconds=__refresh_interval)
+    refresh_message()
+    __main_sched.start()
+
     return 0
 
 @atexit.register

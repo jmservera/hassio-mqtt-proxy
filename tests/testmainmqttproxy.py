@@ -10,7 +10,7 @@ from time import sleep
 import unittest
 from unittest import mock
 
-from paho.mqtt.client import MQTTMessage
+from paho.mqtt.client import MQTTMessage,mqtt_cs_connected, mqtt_cs_new
 from . common import get_fixture_path
 
 _mock_error_msg="Mock error"
@@ -137,7 +137,7 @@ class TestMqttProxy(unittest.TestCase):
         mqtt_client.publish=mock.Mock(return_value=(0,1))
         mqtt_client.disconnect=mock.Mock()
         mqtt_client.loop_stop=mock.Mock()
-        mqtt_client._state=mqtt.mqtt_cs_connected
+        mqtt_client._state=mqtt_cs_connected
         goodbye()
         self.assertTrue(mqtt_client.publish.called)
         self.assertTrue(mqtt_client.disconnect.called)
@@ -147,7 +147,7 @@ class TestMqttProxy(unittest.TestCase):
         mqtt_client.publish=mock.Mock(return_value=(0,1))
         mqtt_client.disconnect=mock.Mock()
         mqtt_client.loop_stop=mock.Mock()
-        mqtt_client._state=mqtt.mqtt_cs_new
+        mqtt_client._state=mqtt_cs_new
         goodbye()
         self.assertFalse(mqtt_client.publish.called)
         self.assertFalse(mqtt_client.disconnect.called)
@@ -158,7 +158,7 @@ class TestMqttProxy(unittest.TestCase):
         mqtt_client.publish=mock.Mock(side_effect=Exception(_mock_error_msg))
         mqtt_client.disconnect=mock.Mock()
         mqtt_client.loop_stop=mock.Mock()
-        mqtt_client._state=mqtt.mqtt_cs_connected
+        mqtt_client._state=mqtt_cs_connected
         goodbye()
 
         output=mock_out.getvalue()

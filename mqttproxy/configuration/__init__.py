@@ -10,10 +10,10 @@ def reset_config():
     debug: true
 mqtt:
     server: localhost
-    user: mosquitto
-    password: mosquitto
+    user: ~
+    password: ~
     retainConfig: true
-    port: 1883
+    port: ~
 ble:
     device: hc0
 
@@ -32,9 +32,17 @@ def get_config():
 
 def __read_config(configfile):
     newconfig=Munch.fromYAML(configfile)
-    _config.clear()
+    copykey=False
     for key in newconfig:
-        _config[key]=newconfig[key]
+        for subkey in newconfig[key]:
+            if isinstance(subkey,str):
+                _config[key][subkey]=newconfig[key][subkey]
+            else:
+                copykey=True
+                break
+        if copykey:
+            _config[key]=newconfig[key]
+
 
 
 def load_config(configpath="config.yaml"):

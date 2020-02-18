@@ -3,6 +3,8 @@ from mqttproxy.__main__ import *
 from mqttproxy.const import ALL_PROXIES_TOPIC
 from mqttproxy.configuration import load_config,get_config,reset_config
 
+from mqttproxy.blescan import scan 
+
 import io
 from time import sleep
 import unittest
@@ -10,6 +12,8 @@ from unittest import mock
 
 from paho.mqtt.client import MQTTMessage
 from . common import get_fixture_path
+
+_mock_error_msg="Mock error"
 
 class TestMqttProxy(unittest.TestCase):
     def tearDown(self):
@@ -38,6 +42,20 @@ class TestMqttProxy(unittest.TestCase):
         on_publish('cli','data',42)
         output=mock_out.getvalue()
         self.assertGreater(output.index("Message 42 published"),0)
+
+    @mock.patch('mqttproxy.__main__.cancel_main_loop')
+    def test_on_message_stop(self, cancel_main_loop):
+        message=MQTTMessage(mid=0,topic="hello")
+        message.payload=b"STOP"
+        on_message('cli','data',message)
+        self.assertTrue(cancel_main_loop.called)
+
+    @mock.patch('mqttproxy.__main__.scan')
+    def test_on_message_scan(self,scan):
+        message=MQTTMessage(mid=0,topic="hello")
+        message.payload=b"SCAN"
+        on_message('cli','data',message)
+        self.assertTrue(scan.called)
 
     @mock.patch('sys.stderr', new_callable=io.StringIO)
     def test_on_message_success(self, mock_out):
@@ -110,6 +128,7 @@ class TestMqttProxy(unittest.TestCase):
 
     @mock.patch('sys.stderr', new_callable=io.StringIO)
     def test_loop(self,mock_out):
+        mqtt_client.publish=mock.Mock(return_value=(0,1))
         start_main_loop(0.1)
         output=mock_out.getvalue()
         sleep(0.1)
@@ -125,15 +144,55 @@ class TestMqttProxy(unittest.TestCase):
         output=mock_out.getvalue()
         self.assertGreater(output.index("Sleeping"),0)
 
-    @mock.patch('sys.stderr', new_callable=io.StringIO)
-    def test_exit(self, mock_out):
+    def test_exit_with_mqtt_connected(self):
         mqtt_client.publish=mock.Mock(return_value=(0,1))
         mqtt_client.disconnect=mock.Mock()
         mqtt_client.loop_stop=mock.Mock()
+        mqtt_client._state=mqtt.mqtt_cs_connected
         goodbye()
         self.assertTrue(mqtt_client.publish.called)
         self.assertTrue(mqtt_client.disconnect.called)
         self.assertTrue(mqtt_client.loop_stop.called)
+
+    def test_exit_with_mqtt_disconnected(self):
+        mqtt_client.publish=mock.Mock(return_value=(0,1))
+        mqtt_client.disconnect=mock.Mock()
+        mqtt_client.loop_stop=mock.Mock()
+        mqtt_client._state=mqtt.mqtt_cs_new
+        goodbye()
+        self.assertFalse(mqtt_client.publish.called)
+        self.assertFalse(mqtt_client.disconnect.called)
+        self.assertFalse(mqtt_client.loop_stop.called)
+
+    @mock.patch('sys.stderr', new_callable=io.StringIO)
+    def test_exit_with_mqtt_msg_failure(self, mock_out):
+        mqtt_client.publish=mock.Mock(side_effect=Exception(_mock_error_msg))
+        mqtt_client.disconnect=mock.Mock()
+        mqtt_client.loop_stop=mock.Mock()
+        mqtt_client._state=mqtt.mqtt_cs_connected
+        goodbye()
+
+        output=mock_out.getvalue()
+
+        self.assertTrue(mqtt_client.disconnect.called)
+        self.assertTrue(mqtt_client.loop_stop.called)
+
+        self.assertTrue(output.index(_mock_error_msg)>0)
+    
+    @mock.patch('sys.stderr', new_callable=io.StringIO)
+    def test_exit_with_mqtt_disconnect_failure(self, mock_out):
+        mqtt_client.publish=mock.Mock(return_value=(0,1))
+        mqtt_client.disconnect=mock.Mock(side_effect=Exception(_mock_error_msg))
+        mqtt_client.loop_stop=mock.Mock()
+        mqtt_client._state=mqtt.mqtt_cs_connected
+        goodbye()
+
+        output=mock_out.getvalue()
+
+        self.assertTrue(mqtt_client.publish.called)
+        self.assertTrue(mqtt_client.loop_stop.called)
+
+        self.assertTrue(output.index(_mock_error_msg)>0)
 
     def test_connect_to_mqtt_user_pwd(self):
         path= get_fixture_path("config.yaml")

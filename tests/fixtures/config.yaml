@@ -10,11 +10,6 @@ mqtt:
 ble:
     device: hc0
 
-
-web_admin:
-    enabled: true
-    port: 8080
-
 devices:
     - name: flora
       id: 0x18155d287bf4

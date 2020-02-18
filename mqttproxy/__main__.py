@@ -107,15 +107,18 @@ def announce(deviceconfig):
     deviceconfig=add_device(deviceconfig)
     publish_message(hostconfigtopic,json.dumps(deviceconfig),retain=config.mqtt.retainConfig)
 
+def refresh_message():
+    publish_message(hoststatetopic,"ON")
+    publish_message(hostavailabilitytopic,"online")
+    logger.info("Sleeping {}s".format(__refresh_interval))
+
 def refresh_loop(timeout:float=30):
     global __refresh_interval
 
     __refresh_interval=timeout
 
     while True:
-        publish_message(hoststatetopic,"ON")
-        publish_message(hostavailabilitytopic,"online")
-        logger.info("Sleeping {}s".format(__refresh_interval))
+        refresh_message()
         if(timeout<0 or __refresh_thread_semaphore.acquire(True,__refresh_interval)):
             break
 
@@ -147,6 +150,7 @@ def connect_to_mqtt():
     global config
 
     config=get_config()
+
     logger.debug(config)
 
     mqtt_client.on_connect = on_connect
@@ -159,7 +163,7 @@ def connect_to_mqtt():
         else:
             mqtt_client.username_pw_set(config.mqtt.user)
 
-    mqtt_client.connect(config.mqtt.server,port=config.mqtt.port,keepalive=60)
+    mqtt_client.connect(config.mqtt.server,port=config.mqtt.port or 1883,keepalive=60)
     mqtt_client.subscribe(hostcommandtopic)
     logger.info("Listening on topic: {}".format(hostcommandtopic))
     mqtt_client.loop_start()
@@ -195,11 +199,17 @@ def main() -> int:
 @atexit.register
 def goodbye():
     logger.info("Trying to exit gracefully from {}".format(host_uniqueid))    
-    if mqtt_client:
-        publish_message(hoststatetopic,"OFF")
-        publish_message(hostavailabilitytopic,"offline")
-        mqtt_client.loop_stop()
-        mqtt_client.disconnect()
+    if mqtt_client and mqtt_client._state==mqtt.mqtt_cs_connected:
+        try:
+            publish_message(hoststatetopic,"OFF")
+            publish_message(hostavailabilitytopic,"offline")
+        except Exception as mex:
+            logger.error('Exception trying to publish messages:{}'.format(mex))
+        try:
+            mqtt_client.loop_stop()
+            mqtt_client.disconnect()
+        except Exception as dex:
+            logger.error('Exception trying to close mqtt client:{}'.format(dex))
 
 if __name__ == "__main__":
     sys.exit(main())

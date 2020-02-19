@@ -13,7 +13,7 @@ parameters = OrderedDict([
 
 config=get_config()
 
-logger=logging.getLogger()
+logger=logging.getLogger(__package__)
 
 def start_module():
     logger.info("Starting {} module".format(__name__))

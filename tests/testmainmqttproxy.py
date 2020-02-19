@@ -214,7 +214,7 @@ class TestMqttProxy(unittest.TestCase):
 class TestMqttProxyPlugins(unittest.TestCase):
     @mock.patch('sys.stderr', new_callable=io.StringIO)
     def test_load_modules(self, mock_out):
-        modules=start_modules()
+        modules=load_modules()
         self.assertGreater(len(modules),0)
         for key in modules.keys():
             modules[key].start_module()

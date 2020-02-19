@@ -6,7 +6,7 @@ import asyncio
 import errno
 import logging
 
-logger=logging.getLogger(__name__)
+logger=logging.getLogger(__package__)
 
 class ScanDelegate(DefaultDelegate):
     def __init__(self):

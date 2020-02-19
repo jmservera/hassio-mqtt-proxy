@@ -34,7 +34,7 @@ manufacturer="jmservera"
 
 mqtt_client = mqtt.Client()
 config=get_config()
-logger=logging.getLogger()
+logger=logging.getLogger(__package__)
 coloredlogs.install()
 sdnotifier=sdnotify.SystemdNotifier()
 
@@ -154,17 +154,20 @@ def connect_to_mqtt():
     }
     announce(deviceconfig)
 
-def start_modules()->{}:
+def load_modules()->{}:
     from os import listdir
     from os.path import join, isdir
     import importlib
     modules={}
     basepath=os.path.dirname(__file__)
     devicespath=join(basepath,'devices')
+    logger.info("Loading modules from {}".format(devicespath))
     for f in listdir(devicespath):
         if isdir(join(devicespath, f)) and not f.startswith('.'):
             module=importlib.import_module('.devices.{}'.format(f),__package__)
+            logger.info("Loaded module {}".format(module.__name__))
             modules[f]=module
+
     return modules
 
 def main() -> int:
@@ -186,7 +189,9 @@ def main() -> int:
     __main_sched.add_job(refresh_message,'interval',seconds=__refresh_interval)
     refresh_message()
 
-    start_modules()
+    modules=load_modules()
+    for key in modules:
+        modules[key].start_module()
 
     __main_sched.start()
 

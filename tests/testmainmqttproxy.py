@@ -78,11 +78,19 @@ class TestMqttProxy(unittest.TestCase):
         #test they are the same object
         self.assertEqual(deviceconfig,dc)
         #test config added
-        self.assertIsNotNone(dc["device"]["identifiers"])
-        self.assertIsNotNone(dc["device"]["name"])
-        self.assertIsNotNone(dc["device"]["manufacturer"])
-        self.assertIsNotNone(dc["device"]["model"])
-        self.assertIsNotNone(dc["device"]["sw_version"])
+        self.assertIn('device',dc)
+        d=dc['device']
+        self.assertIsNotNone(d)
+        self.assertIn('identifiers',d)
+        self.assertIsNotNone(d["identifiers"])
+        self.assertIn('name',d)
+        self.assertIsNotNone(d["name"])
+        self.assertIn('manufacturer',d)
+        self.assertIsNotNone(d["manufacturer"])
+        self.assertIn('model',d)
+        self.assertIsNotNone(d["model"])
+        self.assertIn('sw_version',d)
+        self.assertIsNotNone(d["sw_version"])
 
     def test_announce_success(self):
         deviceconfig={
@@ -202,3 +210,13 @@ class TestMqttProxy(unittest.TestCase):
         self.assertTrue(mqtt_client.connect.called)
         self.assertEqual(config.mqtt.server,mqtt_client.connect.call_args[0][0])
         self.assertEqual(config.mqtt.port,mqtt_client.connect.call_args[1]['port'])
+
+class TestMqttProxyPlugins(unittest.TestCase):
+    @mock.patch('sys.stderr', new_callable=io.StringIO)
+    def test_load_modules(self, mock_out):
+        modules=start_modules()
+        self.assertGreater(len(modules),0)
+        for key in modules.keys():
+            modules[key].start_module()
+            out=mock_out.getvalue()
+            self.assertGreater(out.index(key),0)

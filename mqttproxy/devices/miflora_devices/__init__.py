@@ -1,6 +1,7 @@
 from collections import OrderedDict
 from miflora.miflora_poller import MiFloraPoller, MI_BATTERY, MI_CONDUCTIVITY, MI_LIGHT, MI_MOISTURE, MI_TEMPERATURE
-from .. configuration import get_config
+from mqttproxy.configuration import get_config
+import logging
 
 parameters = OrderedDict([
     (MI_LIGHT, dict(name="LightIntensity", name_pretty='Sunlight Intensity', typeformat='%d', unit='lux', device_class="illuminance")),
@@ -12,3 +13,10 @@ parameters = OrderedDict([
 
 config=get_config()
 
+logger=logging.getLogger()
+
+def start_module():
+    logger.info("Starting {} module".format(__name__))
+
+if __name__ == "__main__":
+    start_module()

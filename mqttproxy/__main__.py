@@ -34,7 +34,7 @@ manufacturer="jmservera"
 
 mqtt_client = mqtt.Client()
 config=get_config()
-logger=logging.getLogger(__name__)
+logger=logging.getLogger()
 coloredlogs.install()
 sdnotifier=sdnotify.SystemdNotifier()
 
@@ -153,7 +153,19 @@ def connect_to_mqtt():
         "~":basetopic
     }
     announce(deviceconfig)
-        
+
+def start_modules()->{}:
+    from os import listdir
+    from os.path import join, isdir
+    import importlib
+    modules={}
+    basepath=os.path.dirname(__file__)
+    devicespath=join(basepath,'devices')
+    for f in listdir(devicespath):
+        if isdir(join(devicespath, f)) and not f.startswith('.'):
+            module=importlib.import_module('.devices.{}'.format(f),__package__)
+            modules[f]=module
+    return modules
 
 def main() -> int:
     global config
@@ -170,9 +182,12 @@ def main() -> int:
         logger.error('MQTT connection error:{}'.format(ex))
         return 1
 
-    __refresh_interval=10
+    __refresh_interval=30
     __main_sched.add_job(refresh_message,'interval',seconds=__refresh_interval)
     refresh_message()
+
+    start_modules()
+
     __main_sched.start()
 
     return 0
